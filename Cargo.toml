@@ -1,0 +1,59 @@
+[workspace]
+members = [
+    "backend"
+]
+resolver = "2"
+
+
+[workspace.lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+
+# General lints
+module_name_repetitions = "allow"  # Allow module naming conventions for clarity
+unwrap_used = "warn"               # Warn against using unwrap, favor safer alternatives
+#expect_used = "warn"               # Warn against using expect; prefer proper error handling
+float_cmp = "warn"                 # Warn on direct floating-point comparisons
+cast_lossless = "warn"             # Warn on potentially unnecessary numeric casts
+cast_possible_truncation = "warn"  # Warn if casts might lose precision
+cast_possible_wrap = "warn"        # Warn about numeric casts that could wrap
+cast_sign_loss = "warn"            # Warn about numeric casts that lose sign information
+clone_on_ref_ptr = "warn"          # Warn about cloning `Arc`, `Rc`, or other ref-counted types
+explicit_into_iter_loop = "warn"   # Warn when `.into_iter()` is used explicitly in a loop
+
+# Style and readability lints
+needless_return = "warn"           # Encourage concise returns
+needless_late_init = "warn"        # Warn about unnecessarily late variable initialization
+redundant_else = "warn"            # Warn if an `else` is redundant after a `return`
+missing_const_for_fn = "warn"      # Warn when a function can be marked `const`
+manual_memcpy = "warn"             # Warn when a manual copy implementation can use `.copy_from_slice`
+
+# Error handling
+result_map_or_into_option = "warn" # Warn when `.map_or()` could be `.ok_or()`
+map_unwrap_or = "warn"             # Warn about `.map(...).unwrap_or()` that can be `.map_or()`
+
+# Performance lints
+inline_always = "warn"             # Warn about using `#[inline(always)]` without clear reasons
+large_enum_variant = "warn"        # Warn if an enum variant is too large
+vec_init_then_push = "warn"        # Warn about initializing a `Vec` and pushing elements separately
+string_add = "warn"                # Warn about using `String` addition (`+` operator)
+
+# Correctness
+almost_swapped = "warn"            # Warn about `x = y; y = x` patterns that are confusing
+misrefactored_assign_op = "warn"   # Warn when compound assignments like `+=` might be refactored incorrectly
+absurd_extreme_comparisons = "warn" # Warn about comparisons that are always true/false
+
+# Suggestions for idiomatic Rust
+useless_conversion = "warn"        # Warn about redundant type conversions
+redundant_clone = "warn"           # Warn about unnecessary calls to `.clone()`
+if_not_else = "warn"               # Warn about `if !condition { ... } else { ... }`, favoring `if condition`
+needless_borrow = "warn"           # Warn about unnecessarily borrowing values
+
+# Safety
+drop_ref = "warn"                  # Warn when a reference is dropped unnecessarily
+match_wild_err_arm = "warn"        # Warn about wildcard patterns (`_`) in error handling
+shadow_unrelated = "warn"          # Warn when unrelated variables shadow each other
+
+# Documentation
+missing_docs_in_private_items = "allow"  # Optional: Enable if documenting private items is required
+missing_panics_doc = "warn"              # Warn if a function that can panic lacks documentation
+missing_errors_doc = "warn"              # Warn if a function that returns `Result` lacks an `# Errors` section
