@@ -1,23 +1,14 @@
+import { sveltekit } from "@sveltejs/kit/vite";
 import { defineConfig } from "vite";
-import autoprefixer from "autoprefixer";
-import path from "node:path";
-import tailwind from "tailwindcss";
-import vue from "@vitejs/plugin-vue";
+import path from "path";
 
-// @ts-expect-error process is a nodejs global
 const host = process.env.TAURI_DEV_HOST;
 
-// https://vitejs.dev/config/
-export default defineConfig(async () => ({
-  css: {
-    postcss: {
-      plugins: [tailwind(), autoprefixer()],
-    },
-  },
-  plugins: [vue()],
+export default defineConfig({
+  plugins: [sveltekit()],
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
+      $lib: path.resolve("./src/lib"),
     },
   },
 
@@ -41,4 +32,4 @@ export default defineConfig(async () => ({
       ignored: ["**/backend/**"],
     },
   },
-}));
+});
