@@ -21,7 +21,10 @@ const connected = writable<boolean>(false);
 
 const deviceContext: DeviceContextType = { hardware, battery, os, storage, connected };
 
-function updateStore<T>(store: Writable<T>, value: any) {
+function updateStore<T extends Hardware | Battery | OS | Storage | boolean>(
+	store: Writable<T>,
+	value: T
+) {
 	store.set(value);
 }
 
@@ -33,7 +36,7 @@ export function getDeviceContext(): DeviceContextType {
 	return getContext<DeviceContextType>('device');
 }
 
-export function startDeviceListeners<T>() {
+export function startDeviceListeners() {
 	onMount(() => {
 		const unlistenHardware = listen<Hardware>('device_hardware', (event) =>
 			updateStore(hardware, event.payload)
@@ -50,14 +53,10 @@ export function startDeviceListeners<T>() {
 			if (event.payload == false) {
 				// put back the default values if disconnected
 				// probably not needed, but why not
-				for (const [ctx, empty_ctx] of [
-					[hardware, empty_hardware],
-					[battery, empty_battery],
-					[os, empty_os],
-					[storage, empty_storage]
-				]) {
-					updateStore(ctx as Writable<T>, empty_ctx);
-				}
+				updateStore(hardware, empty_hardware);
+				updateStore(os, empty_os);
+				updateStore(storage, empty_storage);
+				updateStore(battery, empty_battery);
 			}
 
 			updateStore(connected, event.payload);
