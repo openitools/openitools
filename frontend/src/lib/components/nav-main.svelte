@@ -24,7 +24,7 @@
 </script>
 
 <Sidebar.Group>
-  <Sidebar.MenuButton onclick={(_) => goto("/")}> 
+  <Sidebar.MenuButton onclick={() => goto("/")}> 
     <House />
     Home
   </Sidebar.MenuButton>

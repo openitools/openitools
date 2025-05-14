@@ -3,5 +3,5 @@
 
 fn main() {
     env_logger::init();
-    openitool_lib::run()
+    openitools_lib::run()
 }

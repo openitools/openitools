@@ -2845,7 +2845,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "openitool"
+name = "openitools"
 version = "0.1.0"
 dependencies = [
  "env_logger 0.11.7",

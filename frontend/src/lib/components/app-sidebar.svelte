@@ -59,7 +59,7 @@
 </script>
 
 <Sidebar.Root bind:ref variant="inset" collapsible="icon" {...restProps}>
-	<Sidebar.Header>OpeniTool</Sidebar.Header>
+	<Sidebar.Header>OpeniTools</Sidebar.Header>
 	<Sidebar.Content>
 		<NavMain items={data.navMain} />
 	</Sidebar.Content>

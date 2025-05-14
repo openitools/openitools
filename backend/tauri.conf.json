@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "OpeniTool",
+  "productName": "OpeniTools",
   "version": "0.1.0",
-  "identifier": "com.openitool.app",
+  "identifier": "com.openitools.app",
   "build": {
     "beforeDevCommand": "pnpm dev",
     "devUrl": "http://localhost:1420",
@@ -13,7 +13,7 @@
     "withGlobalTauri": true,
     "windows": [
       {
-        "title": "OpeniTool",
+        "title": "OpeniTools",
         "width": 800,
         "height": 600,
         "resizable": true,
