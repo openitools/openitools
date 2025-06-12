@@ -1,5 +1,8 @@
 mod device_management;
-use device_management::device::{check_device, check_installing_succeed, install_ipcc};
+use device_management::{
+    device::check_device,
+    ipcc::{check_installing_succeed, install_ipcc, query::get_bundles},
+};
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
@@ -15,7 +18,8 @@ pub fn run() {
             greet,
             check_device,
             install_ipcc,
-            check_installing_succeed
+            check_installing_succeed,
+            get_bundles
         ])
         .build(tauri::generate_context!())
         .expect("error while running tauri application")
