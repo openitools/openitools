@@ -1,3 +1,4 @@
 [alias]
 r = "tauri dev"
 b = "tauri build"
+c = "clippy"
