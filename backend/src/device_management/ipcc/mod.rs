@@ -1,15 +1,22 @@
+pub mod prep_file;
 pub mod query;
 
+use query::download_bundle;
 use regex::Regex;
 use rsmobiledevice::{
     device_syslog::{filters::FilterPart, LogFilter},
     RecursiveFind,
 };
-use std::sync::Arc;
+use std::{io::Cursor, sync::Arc};
 use tauri::Emitter;
 
 #[tauri::command]
-pub fn install_ipcc(window: tauri::Window, device_model: String, ios_ver: String) {
+pub async fn install_ipcc(
+    window: tauri::Window,
+    device_model: String,
+    ios_version: String,
+    bundle: String,
+) {
     let device_client_res = rsmobiledevice::device::DeviceClient::new().and_then(|client| {
         client
             .get_first_device()
@@ -18,47 +25,50 @@ pub fn install_ipcc(window: tauri::Window, device_model: String, ios_ver: String
 
     match device_client_res {
         Ok(device_client) => {
-            std::thread::spawn(move || {
-                let device_info = device_client.get_device_info();
+            let device_info = device_client.get_device_info();
 
-                let connected_model = device_info.get_product_type().unwrap_or_default();
+            let connected_model = device_info.get_product_type().unwrap_or_default();
 
-                let connected_ios_ver = device_info.get_product_version().unwrap_or_default();
+            let connected_ios_ver = device_info.get_product_version().unwrap_or_default();
 
-                // if the sent model and ios version doesn't match the connected ones, fail and
-                // return
-                if device_model != connected_model || ios_ver != connected_ios_ver {
-                    log::info!(
-                        "Model or iOS version mismatch: expected {connected_model}:{connected_ios_ver}, got {device_model}:{ios_ver}",
+            // if the sent model and ios version doesn't match the connected ones, fail and
+            // return
+            if device_model != connected_model || ios_version != connected_ios_ver {
+                log::info!(
+                        "Model or iOS version mismatch: expected {connected_model}:{connected_ios_ver}, got {device_model}:{ios_version}",
                     );
-                    window.emit("carrier_bundle_install_status", false).ok();
-                    return;
-                }
+                window.emit("carrier_bundle_install_status", false).ok();
+                return;
+            }
 
-                let window_clone = window.clone();
+            let window_clone = window.clone();
 
-                let install_client = device_client.get_device_installer();
+            let install_client = device_client.get_device_installer();
 
-                // this will be replaced with an api call
-                if let Err(e) = install_client.install_from_path_with_callback(
-                    "~/y.ipcc",
-                    None,
-                    move |_, status| {
-                        // once we recursivly find the `Status` key and it's value is `Completed`
-                        // meaning the installation is successful
-                        if status.rfind("Status").is_some_and(|s| &s == "Completed") {
-                            window_clone
-                                .emit("carrier_bundle_install_status", true)
-                                .ok();
-                        }
-                    },
-                ) {
-                    log::error!("Installation failed: {e}");
-                    window.emit("carrier_bundle_install_status", true).ok();
-                } else {
-                    log::info!("IPCC installation started");
-                }
-            });
+            let tar_file_bytes = download_bundle(&device_model, &ios_version, &bundle).await;
+            let mut zip_file_bytes =
+                Cursor::new(prep_file::repack_tar_to_zip(&tar_file_bytes).await);
+
+            if let Err(e) = install_client.install_from_reader_with_callback(
+                &mut zip_file_bytes,
+                None,
+                move |command, status| {
+                    println!("{command:#?}");
+                    println!("{status:#?}");
+                    // once we recursivly find the `Status` key and it's value is `Completed`
+                    // meaning the installation is successful
+                    if status.rfind("Status").is_some_and(|s| &s == "Completed") {
+                        window_clone
+                            .emit("carrier_bundle_install_status", true)
+                            .ok();
+                    }
+                },
+            ) {
+                log::error!("Installation failed: {e}");
+                window.emit("carrier_bundle_install_status", true).ok();
+            } else {
+                log::info!("IPCC installation started");
+            }
         }
         Err(client_error) => {
             log::error!("Failed to initialize device client: {client_error}");

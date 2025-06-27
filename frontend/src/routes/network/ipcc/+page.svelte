@@ -18,18 +18,18 @@
 	let triggerRef = $state<HTMLButtonElement>(null!);
 	let loading = $state<boolean>(true);
 
-	let frameworks = $state<{ bundle_name: string }[]>([]);
+	let bundles = $state<{ bundle_name: string }[]>([]);
 
 	onMount(async () => {
 		try {
 			await when(connected);
 			const result = (await invoke('get_bundles', {
-				model: $hardware.model,
-				version: $os.ios_ver
+				deviceModel: $hardware.model,
+				iosVersion: $os.ios_ver
 			})) as {
 				bundle_name: string;
 			}[];
-			frameworks = result;
+			bundles = result;
 			loading = false;
 		} catch (e) {
 			console.error('Failed to load frameworks from Rust:', e);
@@ -45,21 +45,28 @@
 			triggerRef.focus();
 		});
 	}
+
+	async function install() {
+		await invoke('install_ipcc', {
+			deviceModel: $hardware.model,
+			iosVersion: $os.ios_ver,
+			bundle: value
+		});
+	}
 </script>
 
 {#if !$connected}
 	connect the device
 {:else if loading}
-	<!-- Skeleton or loading UI -->
 	<div class="flex h-screen w-full items-center justify-center">
 		<div class="h-10 w-10 animate-spin rounded-full border-4 border-muted border-t-primary"></div>
 	</div>
 {:else}
 	<Card.Root class="flex h-full w-full flex-1 flex-col items-center justify-center p-4">
 		<Card.Header class="space-y-1 text-center">
-			<Card.Title class="text-2xl font-semibold text-foreground">Inject IPCC</Card.Title>
+			<Card.Title class="text-2xl font-semibold text-foreground">Install IPCC</Card.Title>
 			<Card.Description class="text-sm text-muted-foreground">
-				Select the bundle and hit inject
+				Select the bundle and hit install
 			</Card.Description>
 		</Card.Header>
 
@@ -83,18 +90,18 @@
 					<Command.Root>
 						<Command.Input placeholder="Search a bundle.." />
 						<Command.List>
-							<Command.Empty>No framework found.</Command.Empty>
+							<Command.Empty>No bundle found.</Command.Empty>
 							<Command.Group value="frameworks">
-								{#each frameworks as framework}
+								{#each bundles as bundle}
 									<Command.Item
-										value={framework.bundle_name}
+										value={bundle.bundle_name}
 										onSelect={() => {
-											value = framework.bundle_name;
+											value = bundle.bundle_name;
 											closeAndFocusTrigger();
 										}}
 									>
-										<CheckIcon class={cn(value !== framework.bundle_name && 'text-transparent')} />
-										{framework.bundle_name}
+										<CheckIcon class={cn(value !== bundle.bundle_name && 'text-transparent')} />
+										{bundle.bundle_name}
 									</Command.Item>
 								{/each}
 							</Command.Group>
@@ -105,7 +112,7 @@
 		</Card.Content>
 
 		<Card.Footer class="flex w-full flex-col gap-2">
-			<Button class="w-full" onclick={() => {}}>Inject</Button>
+			<Button class="w-full" onclick={install}>Install</Button>
 		</Card.Footer>
 	</Card.Root>
 {/if}

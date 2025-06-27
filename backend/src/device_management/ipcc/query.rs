@@ -1,3 +1,5 @@
+use std::io::Cursor;
+
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -41,30 +43,44 @@ struct BundlesFile {
 const BASE_IPCC_URL: &str =
     "https://raw.githubusercontent.com/openitools/openitools-ipcc/refs/heads/files";
 
+pub async fn download_bundle(device_model: &str, ios_version: &str, bundle: &str) -> Vec<u8> {
+    let url = format!(
+        "{BASE_IPCC_URL}/{}/{ios_version}/{bundle}.tar",
+        urlencoding::encode(device_model)
+    );
+
+    let response = reqwest::get(&url).await.unwrap();
+
+    let res_bytes = response.bytes().await.unwrap();
+
+    res_bytes.to_vec()
+}
+
 #[tauri::command]
-pub async fn get_bundles(model: String, version: String) -> Vec<Bundle> {
-    let metadata = get_metadata(&model).await.unwrap();
+pub async fn get_bundles(device_model: String, ios_version: String) -> Vec<Bundle> {
+    let metadata = get_metadata(&device_model).await.unwrap();
 
     for firmware in metadata.fw {
-        if firmware.version == version {
+        if firmware.version == ios_version {
             let url = format!(
-                "{BASE_IPCC_URL}/{}/{version}/bundles.json",
-                urlencoding::encode(&model)
+                "{BASE_IPCC_URL}/{}/{ios_version}/bundles.json",
+                urlencoding::encode(&device_model)
             );
             let response = reqwest::get(&url).await.unwrap();
 
             let bundles =
                 serde_json::from_str::<BundlesFile>(&response.text().await.unwrap()).unwrap();
 
+            println!("{bundles:#?}");
             return bundles.bundles;
         }
     }
 
-    return vec![];
+    vec![]
 }
 
-pub async fn get_metadata(model: &str) -> Result<Metadata, QueryError> {
-    let encoded_model = urlencoding::encode(model);
+pub async fn get_metadata(device_model: &str) -> Result<Metadata, QueryError> {
+    let encoded_model = urlencoding::encode(device_model);
 
     let url = format!("{BASE_IPCC_URL}/{encoded_model}/metadata.json");
 
@@ -77,12 +93,12 @@ pub async fn get_metadata(model: &str) -> Result<Metadata, QueryError> {
     }
 
     let response_text = response.text().await.map_err(|e| {
-        log::error!("failed to get response text for model {model}: {e}");
+        log::error!("failed to get response text for model {device_model}: {e}");
         QueryError::EmptyBody
     })?;
 
     serde_json::from_str(&response_text).map_err(|e| {
-        log::error!("failed to deserialize metadata for model {model}: {e}");
+        log::error!("failed to deserialize metadata for model {device_model}: {e}");
         QueryError::DeserializeError {
             text: response_text,
             error: e,
