@@ -41,7 +41,8 @@ pub async fn install_ipcc(
                 return;
             }
 
-            let window_clone = window.clone();
+            let window = Arc::new(window);
+            let window_clone = Arc::clone(&window);
 
             let install_client = device_client.get_device_installer();
 
