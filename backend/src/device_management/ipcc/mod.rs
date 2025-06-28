@@ -55,10 +55,9 @@ pub async fn install_ipcc(
                 move |command, status| {
                     println!("{command:#?}");
                     println!("{status:#?}");
-                    // once we recursivly find the `Status` key and it's value is `Completed`
+                    // once we recursivly find the `Status` key and it's value is `Complete`
                     // meaning the installation is successful
                     if status.rfind("Status").is_some_and(|s| &s == "Complete") {
-                        println!("yeah");
                         window_clone
                             .emit("carrier_bundle_install_status", true)
                             .ok();
