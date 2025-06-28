@@ -10,6 +10,7 @@
 	import { cn, when } from '$lib/utils.js';
 	import { invoke } from '@tauri-apps/api/core';
 	import { getDeviceContext } from '$lib/device-context';
+	import { listen } from '@tauri-apps/api/event';
 
 	const { hardware, os, connected } = getDeviceContext();
 
@@ -17,6 +18,8 @@
 	let value = $state('');
 	let triggerRef = $state<HTMLButtonElement>(null!);
 	let loading = $state<boolean>(true);
+
+	let installResult = $state<'idle' | 'success' | 'error'>('idle');
 
 	let bundles = $state<{ bundle_name: string }[]>([]);
 
@@ -47,11 +50,49 @@
 	}
 
 	async function install() {
-		await invoke('install_ipcc', {
-			deviceModel: $hardware.model,
-			iosVersion: $os.ios_ver,
-			bundle: value
-		});
+		installResult = 'idle';
+
+		try {
+			const waitForEmit = new Promise<boolean>((resolve, reject) => {
+				listen<boolean>('carrier_bundle_install_status', (event) => {
+					console.log('Received event:', event);
+					resolve(event.payload);
+					unlisten();
+				})
+					.then((unsub) => {
+						unlisten = unsub;
+					})
+					.catch(reject);
+
+				let unlisten: () => void;
+
+				setTimeout(() => {
+					if (unlisten) {
+						unlisten();
+						reject(new Error('Timed out waiting for carrier_bundle_install_status'));
+					}
+				}, 10_000); // 10s timeout
+			});
+
+			await invoke('install_ipcc', {
+				deviceModel: $hardware.model,
+				iosVersion: $os.ios_ver,
+				bundle: value
+			});
+
+			const result = await waitForEmit;
+
+			installResult = result ? 'success' : 'error';
+
+			await new Promise((r) => setTimeout(r, 3000));
+			installResult = 'idle';
+		} catch (e) {
+			console.error('Install failed:', e);
+			installResult = 'error';
+
+			await new Promise((r) => setTimeout(r, 3000));
+			installResult = 'idle';
+		}
 	}
 </script>
 
@@ -112,7 +153,22 @@
 		</Card.Content>
 
 		<Card.Footer class="flex w-full flex-col gap-2">
-			<Button class="w-full" onclick={install}>Install</Button>
+			<Button
+				class={cn(
+					'w-full',
+					installResult === 'success' && 'bg-green-500 text-white hover:bg-green-600',
+					installResult === 'error' && 'bg-red-500 text-white hover:bg-red-600'
+				)}
+				onclick={install}
+			>
+				{#if installResult === 'success'}
+					Installed
+				{:else if installResult === 'error'}
+					Failed
+				{:else}
+					Install
+				{/if}
+			</Button>
 		</Card.Footer>
 	</Card.Root>
 {/if}
