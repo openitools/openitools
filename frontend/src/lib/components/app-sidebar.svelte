@@ -16,11 +16,11 @@
 					{
 						title: 'IPCC',
 						url: '/network/ipcc'
-					},
-					{
-						title: 'APN',
-						url: '/network/apn'
 					}
+					// {
+					// 	title: 'APN',
+					// 	url: '/network/apn'
+					// }
 				]
 			}
 		],
