@@ -87,47 +87,53 @@ pub fn check_installing_succeed(window: tauri::Window) {
 
     match device_client_res {
         Ok(device_client) => {
-            let mut syslog_client = device_client.get_device_syslog();
+            // we don't want to drop the syslog client after the function ends
+            // might change later
+            // TODO: maybe use async instead of a thread
+            std::thread::spawn(|| {
+                let mut syslog_client = device_client.get_device_syslog();
 
-            match Regex::new(r"/\b\w*SIM is Ready\w*\b/i") {
-                Ok(re) => {
-                    // usually there will be a message about the sim being ready in the logs if the carrier
-                    // bundle installation is good
-                    syslog_client.set_filter(LogFilter::OneShot(re), FilterPart::All);
+                match Regex::new(r"/\b\w*SIM is Ready\w*\b/i") {
+                    Ok(re) => {
+                        // usually there will be a message about the sim being ready in the logs if the carrier
+                        // bundle installation is good
+                        syslog_client.set_filter(LogFilter::OneShot(re), FilterPart::All);
+                    }
+                    Err(e) => {
+                        log::error!("Failed to create a new regex, error: {e}");
+                        window.emit("installation_succeed_status", false).ok();
+                        return;
+                    }
                 }
-                Err(e) => {
-                    log::error!("Failed to create a new regex, error: {e}");
+
+                let window = Arc::new(window);
+
+                let window_1 = Arc::clone(&window);
+                let window_2 = Arc::clone(&window);
+
+                // the first callback should be called once the filter succeed to be found and it will
+                // stop because we specifed the OneShot, which basically stops the logging if the
+                // filter applied
+                //
+                // if not and it exceeded the timeout, the second callback would get called, thus
+                // triggering the false payload
+                if let Err(e) = syslog_client.log_to_custom_with_timeout_or_else(
+                    move |_| {
+                        log::info!("SIM ready detected");
+                        window_1.emit("installation_succeed_status", true).ok();
+                    },
+                    std::time::Duration::from_secs(40),
+                    move || {
+                        log::warn!("SIM ready not detected within 40s");
+                        window_2.emit("installation_succeed_status", false).ok();
+                    },
+                ) {
+                    log::error!("Syslog monitoring failed: {e}");
                     window.emit("installation_succeed_status", false).ok();
-                    return;
                 }
-            }
-
-            let window = Arc::new(window);
-
-            let window_1 = Arc::clone(&window);
-            let window_2 = Arc::clone(&window);
-
-            // the first callback should be called once the filter succeed to be found and it will
-            // stop because we specifed the OneShot, which basically stops the logging if the
-            // filter applied
-            //
-            // if not and it exceeded the timeout, the second callback would get called, thus
-            // triggering the false payload
-            if let Err(e) = syslog_client.log_to_custom_with_timeout_or_else(
-                move |_| {
-                    log::info!("SIM ready detected");
-                    window_1.emit("installation_succeed_status", true).ok();
-                },
-                std::time::Duration::from_secs(40),
-                move || {
-                    log::warn!("SIM ready not detected within 40s");
-                    window_2.emit("installation_succeed_status", false).ok();
-                },
-            ) {
-                log::error!("Syslog monitoring failed: {e}");
-                window.emit("installation_succeed_status", false).ok();
-            }
+            });
         }
+
         Err(e) => {
             log::error!("Failed to initialize device client: {e}");
             window.emit("installation_succeed_status", false).ok();
