@@ -4,20 +4,13 @@
 
 Before building, install these system packages:
 
-| Package                  | Arch Linux                | Ubuntu / Debian           | Fedora                    |
-| ------------------------ | ------------------------- | ------------------------- | ------------------------- |
-| libimobiledevice         | `libimobiledevice`        | `libimobiledevice6`       | `libimobiledevice`        |
-| libimobiledevice-glue    | `libimobiledevice-glue`   | `libimobiledevice-glue`   | `libimobiledevice-glue`   |
-| usbmuxd                  | `usbmuxd`                 | `usbmuxd`                 | `usbmuxd`                 |
-| libusbmuxd (if separate) | Usually part of `usbmuxd` | Usually part of `usbmuxd` | Usually part of `usbmuxd` |
-
 **Install commands:**
 
 - **Arch Linux:**
 
 ```fish
 
-        sudo pacman -Syu libimobiledevice usbmuxd
+        sudo pacman -Syu libimobiledevice libimobiledevice-glue usbmuxd libusbmuxd
 ```
 
 - **Ubuntu / Debian:**
