@@ -26,6 +26,8 @@
 	onMount(async () => {
 		try {
 			await when(connected);
+			console.log($hardware);
+			console.log($os);
 			const result = (await invoke('get_bundles', {
 				deviceModel: $hardware.model,
 				iosVersion: $os.ios_ver
@@ -35,7 +37,7 @@
 			bundles = result;
 			loading = false;
 		} catch (e) {
-			console.error('Failed to load frameworks from Rust:', e);
+			console.error('Failed to load bundles from Rust:', e);
 		}
 	});
 
