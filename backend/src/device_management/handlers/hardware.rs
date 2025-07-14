@@ -47,7 +47,7 @@ pub fn handle_device_hardware(device: &DeviceClient<SingleDevice>) -> Hardware {
         _ => "unknown",
     };
 
-    let model_number = format!("{} ({})", model_number_code, model_meaning);
+    let model_number = format!("{model_number_code} ({model_meaning})",);
 
     Hardware {
         model: device_info

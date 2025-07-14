@@ -6,6 +6,7 @@ use rsmobiledevice::{
 
 #[derive(Serialize, Clone)]
 pub struct Storage {
+    // TODO: remove the storage postfixe
     pub total_storage: u64,
     pub used_storage: u64,
     pub available_storage: u64,
@@ -14,14 +15,17 @@ pub struct Storage {
 pub fn handle_device_storage(device: &DeviceClient<SingleDevice>) -> Storage {
     let device_info = device.get_device_info();
 
-    let disk_dict = device_info.get_values(DeviceDomains::DiskUsage).unwrap();
-    let mut total_storage = disk_dict
+    let disk_hash = device_info
+        .get_values(DeviceDomains::DiskUsage)
+        .unwrap_or_default();
+
+    let mut total_storage = disk_hash
         .get("TotalDiskCapacity")
         .map_or(0, |s| s.parse::<u64>().unwrap_or_default());
 
     total_storage /= 1e+9 as u64;
 
-    let mut available_storage = disk_dict
+    let mut available_storage = disk_hash
         .get("AmountRestoreAvailable")
         .map_or(0, |s| s.parse::<u64>().unwrap_or_default());
 
@@ -31,7 +35,7 @@ pub fn handle_device_storage(device: &DeviceClient<SingleDevice>) -> Storage {
 
     Storage {
         total_storage,
-        available_storage,
         used_storage,
+        available_storage,
     }
 }

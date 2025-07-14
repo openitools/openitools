@@ -4,6 +4,7 @@ use rsmobiledevice::{device::DeviceClient, devices_collection::SingleDevice, Rec
 
 #[derive(Serialize, Clone, Default)]
 pub struct Battery {
+    // TODO: remove the battery prefix
     pub battery_level: u8,
     pub battery_health: f32,
     pub cycle_counts: u32,
@@ -12,9 +13,8 @@ pub struct Battery {
 pub fn handle_device_battery(device: &DeviceClient<SingleDevice>) -> Battery {
     let device_diag = device.get_device_diagnostic();
 
-    let battery_plist = match device_diag.get_battery_plist() {
-        Ok(plist) => plist,
-        Err(_) => return Battery::default(),
+    let Ok(battery_plist) = device_diag.get_battery_plist() else {
+        return Battery::default();
     };
 
     let battery_level = battery_plist
@@ -25,15 +25,15 @@ pub fn handle_device_battery(device: &DeviceClient<SingleDevice>) -> Battery {
         .rfind("CycleCount")
         .map_or(0, |n| n.parse::<u32>().unwrap_or_default());
 
-    let _designed_capa = battery_plist
+    let designed_capa = battery_plist
         .rfind("DesignCapacity")
         .map_or(0.0, |n| n.parse::<f32>().unwrap_or_default());
 
-    let _max_capa = battery_plist
+    let max_capa = battery_plist
         .rfind("NominalChargeCapacity")
         .map_or(0.0, |n| n.parse::<f32>().unwrap_or_default());
 
-    let battery_health = ((_max_capa / _designed_capa) * 100.0 * 100.0).round() / 100.0;
+    let battery_health = ((max_capa / designed_capa) * 100.0 * 100.0).round() / 100.0;
 
     Battery {
         battery_level,

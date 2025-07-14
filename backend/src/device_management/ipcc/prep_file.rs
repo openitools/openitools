@@ -1,15 +1,12 @@
 use async_zip::{tokio::write::ZipFileWriter, Compression, ZipEntryBuilder};
 use futures_util::StreamExt;
-use tokio::{
-    fs::File,
-    io::{duplex, AsyncReadExt, AsyncWriteExt},
-};
+use tokio::io::{duplex, AsyncReadExt, AsyncWriteExt};
 
-use tokio_tar::{Archive, EntryType};
+use tokio_tar::Archive;
 
 fn adjust_path(path: &str) -> String {
     if !path.contains(".bundle") {
-        return format!("Payload/{}", path);
+        return format!("Payload/{path}");
     }
 
     let mut out = String::with_capacity(8 + path.len()); // "Payload/" + rest
