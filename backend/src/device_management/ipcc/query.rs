@@ -73,7 +73,6 @@ pub async fn get_bundles(device_model: String, ios_version: String) -> Vec<Bundl
             let bundles =
                 serde_json::from_str::<BundlesFile>(&response.text().await.unwrap()).unwrap();
 
-            println!("{bundles:#?}");
             return bundles.bundles;
         }
     }

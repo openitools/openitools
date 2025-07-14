@@ -6,20 +6,20 @@ export interface OS {
 }
 
 export interface Storage {
-	total_storage: number;
-	used_storage: number;
-	available_storage: number;
+	total: number;
+	used: number;
+	available: number;
 }
 
 export interface Battery {
-	battery_level: number;
-	battery_health: number;
-	cycle_counts: number;
+	level: number;
+	health: number;
+	cycleCounts: number;
 }
 
 export interface Hardware {
 	model: string;
-	model_number: string;
+	modelNumber: string;
 	region: string;
 }
 

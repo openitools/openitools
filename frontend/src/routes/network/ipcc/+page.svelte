@@ -12,7 +12,7 @@
 	import { getDeviceContext } from '$lib/device-context';
 	import { listen } from '@tauri-apps/api/event';
 
-	const { hardware, os, connected } = getDeviceContext();
+	const { hardware, os, connected, storage, battery } = getDeviceContext();
 
 	let open = $state(false);
 	let value = $state('');
@@ -28,6 +28,8 @@
 			await when(connected);
 			console.log($hardware);
 			console.log($os);
+			console.log($storage);
+			console.log($battery);
 			const result = (await invoke('get_bundles', {
 				deviceModel: $hardware.model,
 				iosVersion: $os.ios_ver

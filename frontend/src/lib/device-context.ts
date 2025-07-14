@@ -5,16 +5,16 @@ import { invoke } from '@tauri-apps/api/core';
 
 import type { Hardware, Battery, OS, Storage, DeviceContextType } from '$lib/types';
 
-const empty_hardware = { model: '', model_number: '', region: '' };
+const empty_hardware = { model: '', modelNumber: '', region: '' };
 const hardware = writable<Hardware>(empty_hardware);
 
-const empty_battery = { battery_level: 0, battery_health: 0, cycle_counts: 0 };
+const empty_battery = { level: 0, health: 0, cycleCounts: 0 };
 const battery = writable<Battery>(empty_battery);
 
 const empty_os = { ios_ver: '', build_num: '' };
 const os = writable<OS>(empty_os);
 
-const empty_storage = { total_storage: 0, used_storage: 0, available_storage: 0 };
+const empty_storage = { total: 0, used: 0, available: 0 };
 const storage = writable<Storage>(empty_storage);
 
 const connected = writable<boolean>(false);

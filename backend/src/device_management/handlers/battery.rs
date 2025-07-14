@@ -4,9 +4,8 @@ use rsmobiledevice::{device::DeviceClient, devices_collection::SingleDevice, Rec
 
 #[derive(Serialize, Clone, Default)]
 pub struct Battery {
-    // TODO: remove the battery prefix
-    pub battery_level: u8,
-    pub battery_health: f32,
+    pub level: u8,
+    pub health: f32,
     pub cycle_counts: u32,
 }
 
@@ -17,7 +16,7 @@ pub fn handle_device_battery(device: &DeviceClient<SingleDevice>) -> Battery {
         return Battery::default();
     };
 
-    let battery_level = battery_plist
+    let level = battery_plist
         .rfind("CurrentCapacity")
         .map_or(0, |n| n.parse::<u8>().unwrap_or_default());
 
@@ -25,19 +24,21 @@ pub fn handle_device_battery(device: &DeviceClient<SingleDevice>) -> Battery {
         .rfind("CycleCount")
         .map_or(0, |n| n.parse::<u32>().unwrap_or_default());
 
-    let designed_capa = battery_plist
-        .rfind("DesignCapacity")
-        .map_or(0.0, |n| n.parse::<f32>().unwrap_or_default());
+    let health = {
+        let designed_capa = battery_plist
+            .rfind("DesignCapacity")
+            .map_or(0.0, |n| n.parse::<f32>().unwrap_or_default());
 
-    let max_capa = battery_plist
-        .rfind("NominalChargeCapacity")
-        .map_or(0.0, |n| n.parse::<f32>().unwrap_or_default());
+        let max_capa = battery_plist
+            .rfind("NominalChargeCapacity")
+            .map_or(0.0, |n| n.parse::<f32>().unwrap_or_default());
 
-    let battery_health = ((max_capa / designed_capa) * 100.0 * 100.0).round() / 100.0;
+        ((max_capa / designed_capa) * 100.0 * 100.0).round() / 100.0
+    };
 
     Battery {
-        battery_level,
-        battery_health,
+        level,
+        health,
         cycle_counts,
     }
 }
