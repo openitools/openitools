@@ -1,21 +1,14 @@
 mod device_management;
 use device_management::{
     device::check_device,
-    ipcc::{check_installing_succeed, install_ipcc, query::get_bundles},
+    ipcc::{check::check_installing_succeed, install::install_ipcc, query::get_bundles},
 };
-
-// Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-#[tauri::command]
-fn greet(name: &str) -> String {
-    format!("Hello, {}! You've been greeted from Rust!", name)
-}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .invoke_handler(tauri::generate_handler![
-            greet,
             check_device,
             install_ipcc,
             check_installing_succeed,
@@ -28,7 +21,8 @@ pub fn run() {
                 println!("hey we exit");
             }
             tauri::RunEvent::ExitRequested { .. } => {
-                rsmobiledevice::device::event_unsubscribe().unwrap();
+                rsmobiledevice::device::event_unsubscribe()
+                    .unwrap_or_else(|e| panic!("unable to unsubscribe for idevices, error {e}"));
             }
             _ => {}
         });

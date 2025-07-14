@@ -16,29 +16,33 @@ pub fn check_device(window: tauri::Window) {
             log::info!("device connected");
             window.emit("device_status", true).ok();
 
-            let device_client = rsmobiledevice::device::DeviceClient::new()
-                .and_then(|client| {
-                    client
-                        .get_first_device()
-                        .ok_or(rsmobiledevice::errors::DeviceClientError::DeviceNotFound)
-                })
-                .unwrap();
+            let device_client = rsmobiledevice::device::DeviceClient::new().and_then(|client| {
+                client
+                    .get_first_device()
+                    .ok_or(rsmobiledevice::errors::DeviceClientError::DeviceNotFound)
+            });
 
-            window
-                .emit("device_hardware", handle_device_hardware(&device_client))
-                .ok();
+            match device_client {
+                Ok(client) => {
+                    window
+                        .emit("device_hardware", handle_device_hardware(&client))
+                        .ok();
 
-            window
-                .emit("device_storage", handle_device_storage(&device_client))
-                .ok();
+                    window
+                        .emit("device_storage", handle_device_storage(&client))
+                        .ok();
 
-            window
-                .emit("device_battery", handle_device_battery(&device_client))
-                .ok();
+                    window
+                        .emit("device_battery", handle_device_battery(&client))
+                        .ok();
 
-            window
-                .emit("device_os", handle_device_os(&device_client))
-                .ok();
+                    window.emit("device_os", handle_device_os(&client)).ok();
+                }
+
+                Err(e) => {
+                    log::error!("failed to create a device client, error: {e}");
+                }
+            }
         }
         Event::Disconnect => {
             println!("disconnected");
@@ -47,5 +51,5 @@ pub fn check_device(window: tauri::Window) {
         }
         Event::Pair => {}
     })
-    .unwrap();
+    .unwrap_or_else(|e| panic!("unable to subscribe to the idevice, error: {e}"));
 }

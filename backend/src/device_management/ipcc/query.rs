@@ -1,5 +1,3 @@
-use std::io::Cursor;
-
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -43,17 +41,21 @@ struct BundlesFile {
 const BASE_IPCC_URL: &str =
     "https://raw.githubusercontent.com/openitools/openitools-ipcc/refs/heads/files";
 
-pub async fn download_bundle(device_model: &str, ios_version: &str, bundle: &str) -> Vec<u8> {
+pub async fn download_bundle(
+    device_model: &str,
+    ios_version: &str,
+    bundle: &str,
+) -> Result<Vec<u8>, QueryError> {
     let url = format!(
         "{BASE_IPCC_URL}/{}/{ios_version}/{bundle}.tar",
         urlencoding::encode(device_model)
     );
 
-    let response = reqwest::get(&url).await.unwrap();
+    let response = reqwest::get(&url).await?;
 
-    let res_bytes = response.bytes().await.unwrap();
+    let res_bytes = response.bytes().await?;
 
-    res_bytes.to_vec()
+    Ok(res_bytes.to_vec())
 }
 
 #[tauri::command]
