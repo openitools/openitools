@@ -15,7 +15,7 @@ pub struct Hardware {
     pub region: String,
 }
 pub async fn handle_device_hardware(device: &mut LockdownClient) -> Hardware {
-    let region_code = get_string_value_or_default(device, Some("RegionIno"), None)
+    let region_code = get_string_value_or_default(device, Some("RegionInfo"), None)
         .await
         .unwrap_or_default();
 
