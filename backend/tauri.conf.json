@@ -31,8 +31,9 @@
     }
   },
   "bundle": {
+    "createUpdaterArtifacts": true,
     "active": true,
-    "targets": ["deb", "appimage", "msi", "dmg"],
+    "targets": ["deb", "msi", "dmg"],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -40,5 +41,15 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ]
+  },
+  "plugins": {
+    "updater": {
+      "active": true,
+      "dialog": true,
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDc0OTRDNEYwNUM4NDE2NzMKUldSekZvUmM4TVNVZEJiRXFsdE9COC9lVUhoUW1iamFYNkZ6Tit5MmJNa2t3Y3RkUmRlQ0FXYm4K",
+      "endpoints": [
+        "https://github.com/openitools/openitools/releases/latest/download/latest.json"
+      ]
+    }
   }
 }
