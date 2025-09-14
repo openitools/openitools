@@ -6,6 +6,8 @@ use rsmobiledevice::{
 };
 use serde::Serialize;
 
+use super::get_string_value_or_default;
+
 #[derive(Serialize, Clone)]
 pub struct Hardware {
     pub model: String,
@@ -13,13 +15,9 @@ pub struct Hardware {
     pub region: String,
 }
 pub async fn handle_device_hardware(device: &mut LockdownClient) -> Hardware {
-    let region_code = device
-        .get_value(Some("RegionInfo"), None)
+    let region_code = get_string_value_or_default(device, Some("RegionIno"), None)
         .await
-        .map(|v| v.as_string().map(ToString::to_string))
-        .ok()
-        .flatten()
-        .unwrap();
+        .unwrap_or_default();
 
     let region: String = match region_code.as_str() {
         "LL/A" => "United States".into(),
@@ -37,13 +35,9 @@ pub async fn handle_device_hardware(device: &mut LockdownClient) -> Hardware {
         _ => "unknown".into(),
     };
 
-    let model_number_code = device
-        .get_value(Some("ModelNumber"), None)
+    let model_number_code = get_string_value_or_default(device, Some("ModelNumber"), None)
         .await
-        .map(|v| v.as_string().map(ToString::to_string))
-        .ok()
-        .flatten()
-        .unwrap_or("unknown".into());
+        .unwrap_or_default();
 
     let model_meaning = match model_number_code.chars().next().unwrap_or_default() {
         'F' => "Refurbished Device",
@@ -56,13 +50,9 @@ pub async fn handle_device_hardware(device: &mut LockdownClient) -> Hardware {
 
     let model_number = format!("{model_number_code} ({model_meaning})",);
 
-    let model = device
-        .get_value(Some("ProductType"), None)
+    let model = get_string_value_or_default(device, Some("ProductType"), None)
         .await
-        .map(|v| v.as_string().map(ToString::to_string))
-        .ok()
-        .flatten()
-        .unwrap_or("unknown".into());
+        .unwrap_or("Unknown".into());
 
     Hardware {
         model,
