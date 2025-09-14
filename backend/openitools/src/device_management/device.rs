@@ -1,4 +1,6 @@
-use rsmobiledevice::device::Event;
+use std::sync::{atomic::AtomicBool, Arc};
+
+use openitools_idevice::Event;
 use tauri::Emitter;
 
 use super::handlers::{
@@ -7,11 +9,11 @@ use super::handlers::{
 };
 
 #[tauri::command]
-pub fn check_device(window: tauri::Window) {
+pub async fn check_device(window: tauri::Window) {
     window.emit("device_status", false).ok();
 
-    rsmobiledevice::device::event_subscribe(move |event| match event {
-        Event::Connect => {
+    openitools_idevice::event_subscribe(move |event| match event {
+        Event::Connected => {
             println!("connected");
             log::info!("device connected");
             window.emit("device_status", true).ok();
@@ -44,12 +46,12 @@ pub fn check_device(window: tauri::Window) {
                 }
             }
         }
-        Event::Disconnect => {
+        Event::Disconnected => {
             println!("disconnected");
             log::info!("device disconnected");
             window.emit("device_status", false).ok();
         }
         Event::Pair => {}
     })
-    .unwrap_or_else(|e| panic!("unable to subscribe to the idevice, error: {e}"));
+    .await;
 }
