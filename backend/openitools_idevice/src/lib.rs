@@ -6,7 +6,6 @@ use tokio::time::{Duration, sleep};
 pub enum Event {
     Connected,
     Disconnected,
-    Pair,
 }
 
 async fn is_device_connected() -> Result<(), String> {

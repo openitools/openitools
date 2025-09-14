@@ -51,7 +51,6 @@ pub async fn check_device(window: tauri::Window) {
             log::info!("device disconnected");
             window.emit("device_status", false).ok();
         }
-        Event::Pair => {}
     })
     .await;
 }
