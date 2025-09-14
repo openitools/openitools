@@ -1,6 +1,11 @@
 use std::{net::SocketAddr, str::FromStr as _};
 
-use idevice::usbmuxd::UsbmuxdConnection;
+pub use idevice::{
+    IdeviceService,
+    lockdown::LockdownClient,
+    provider::{IdeviceProvider, UsbmuxdProvider},
+    usbmuxd::{UsbmuxdAddr, UsbmuxdConnection, UsbmuxdDevice},
+};
 use tokio::time::{Duration, sleep};
 
 pub enum Event {
@@ -8,7 +13,7 @@ pub enum Event {
     Disconnected,
 }
 
-async fn is_device_connected() -> Result<(), String> {
+async fn get_devices() -> Result<Vec<UsbmuxdDevice>, String> {
     let mut usbmuxd = if let Ok(var) = std::env::var("USBMUXD_SOCKET_ADDRESS") {
         let socket =
             SocketAddr::from_str(&var).map_err(|e| format!("Bad USBMUXD_SOCKET_ADDRESS: {e:?}"))?;
@@ -26,16 +31,42 @@ async fn is_device_connected() -> Result<(), String> {
         .await
         .map_err(|e| format!("Unable to get devices from usbmuxd: {e:?}"))?;
 
+    Ok(devices)
+}
+
+async fn get_device() -> Result<UsbmuxdDevice, String> {
+    let mut devices = get_devices().await?;
+
     if devices.is_empty() {
         return Err("devices are empty".into());
     }
 
-    Ok(())
+    Ok(devices.remove(0))
 }
 
-pub async fn event_subscribe<F>(func: F) -> !
+pub async fn get_provider() -> Result<UsbmuxdProvider, String> {
+    let device = get_device().await?;
+
+    let muxaddr = UsbmuxdAddr::from_env_var()
+        .map_err(|e| format!("failed to create a usbmuxd address from env: {e:?}"))?;
+
+    Ok(device.to_provider(muxaddr, "openitools-idevice"))
+}
+
+pub async fn get_lockdownd_client(provider: &UsbmuxdProvider) -> Result<LockdownClient, String> {
+    LockdownClient::connect(provider)
+        .await
+        .map_err(|e| format!("failed to connect to lockdownd service: {e:?}"))
+}
+
+async fn is_device_connected() -> Result<(), String> {
+    get_device().await.map(|_| ())
+}
+
+pub async fn event_subscribe<F, Fut>(func: F) -> !
 where
-    F: Fn(Event),
+    F: Fn(Event) -> Fut,
+    Fut: Future<Output = ()>,
 {
     let mut was_connected = false;
 
@@ -44,11 +75,11 @@ where
         match is_connected {
             Ok(()) if !was_connected => {
                 was_connected = true;
-                func(Event::Connected);
+                func(Event::Connected).await;
             }
             Err(_) if was_connected => {
                 was_connected = false;
-                func(Event::Disconnected);
+                func(Event::Disconnected).await;
             }
             _ => {} // no change
         }
