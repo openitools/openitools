@@ -1,3 +1,4 @@
+use openitools_idevice::LockdownClient;
 use rsmobiledevice::{
     device::DeviceClient,
     device_info::{domains::DeviceDomains, keys::DeviceKeys},
@@ -11,12 +12,14 @@ pub struct Hardware {
     pub model_number: String,
     pub region: String,
 }
-pub fn handle_device_hardware(device: &DeviceClient<SingleDevice>) -> Hardware {
-    let device_info = device.get_device_info();
-
-    let region_code = device_info
-        .get_value(DeviceKeys::RegionInfo, DeviceDomains::All)
-        .map_or("unknown".into(), |s| s.trim().to_owned());
+pub async fn handle_device_hardware(device: &mut LockdownClient) -> Hardware {
+    let region_code = device
+        .get_value(Some("RegionInfo"), None)
+        .await
+        .map(|v| v.as_string().map(ToString::to_string))
+        .ok()
+        .flatten()
+        .unwrap();
 
     let region: String = match region_code.as_str() {
         "LL/A" => "United States".into(),
@@ -34,8 +37,12 @@ pub fn handle_device_hardware(device: &DeviceClient<SingleDevice>) -> Hardware {
         _ => "unknown".into(),
     };
 
-    let model_number_code = device_info
-        .get_value(DeviceKeys::ModelNumber, DeviceDomains::All)
+    let model_number_code = device
+        .get_value(Some("ModelNumber"), None)
+        .await
+        .map(|v| v.as_string().map(ToString::to_string))
+        .ok()
+        .flatten()
         .unwrap_or("unknown".into());
 
     let model_meaning = match model_number_code.chars().next().unwrap_or_default() {
@@ -44,15 +51,21 @@ pub fn handle_device_hardware(device: &DeviceClient<SingleDevice>) -> Hardware {
         'N' => "Warranty Replacement Device",
         'P' => "Personalized Device",
         '3' => "Demo Device",
-        _ => "unknown",
+        _ => "Unknown",
     };
 
     let model_number = format!("{model_number_code} ({model_meaning})",);
 
+    let model = device
+        .get_value(Some("ProductType"), None)
+        .await
+        .map(|v| v.as_string().map(ToString::to_string))
+        .ok()
+        .flatten()
+        .unwrap_or("unknown".into());
+
     Hardware {
-        model: device_info
-            .get_value(DeviceKeys::ProductType, DeviceDomains::All)
-            .unwrap_or("unknown".into()),
+        model,
         model_number,
         region,
     }

@@ -1,6 +1,6 @@
 use std::sync::{atomic::AtomicBool, Arc};
 
-use openitools_idevice::Event;
+use openitools_idevice::{Event, IdeviceProvider};
 use tauri::Emitter;
 
 use super::handlers::{
@@ -12,7 +12,7 @@ use super::handlers::{
 pub async fn check_device(window: tauri::Window) {
     window.emit("device_status", false).ok();
 
-    openitools_idevice::event_subscribe(move |event| match event {
+    openitools_idevice::event_subscribe(async |event| match event {
         Event::Connected => {
             println!("connected");
             log::info!("device connected");
@@ -24,10 +24,42 @@ pub async fn check_device(window: tauri::Window) {
                     .ok_or(rsmobiledevice::errors::DeviceClientError::DeviceNotFound)
             });
 
+            let device_provider = match openitools_idevice::get_provider().await {
+                Ok(provider) => provider,
+                Err(e) => {
+                    log::error!("Something went wrong while getting the device provider: {e:?}");
+                    return;
+                }
+            };
+
+            let mut lockdownd_client =
+                match openitools_idevice::get_lockdownd_client(&device_provider).await {
+                    Ok(lockdownd) => lockdownd,
+                    Err(e) => {
+                        log::error!(
+                            "Something went wrong while getting the lockdownd client: {e:?}"
+                        );
+                        return;
+                    }
+                };
+
+            lockdownd_client
+                .start_session(
+                    &device_provider
+                        .get_pairing_file()
+                        .await
+                        .unwrap_or_else(|e| panic!("Failed to get the pairing file: {e:?}")),
+                )
+                .await
+                .unwrap_or_else(|e| panic!("Failed to start a new lockdownd session: {e:?}"));
+
             match device_client {
                 Ok(client) => {
                     window
-                        .emit("device_hardware", handle_device_hardware(&client))
+                        .emit(
+                            "device_hardware",
+                            handle_device_hardware(&mut lockdownd_client).await,
+                        )
                         .ok();
 
                     window
