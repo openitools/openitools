@@ -33,9 +33,9 @@ async fn is_device_connected() -> Result<(), String> {
     Ok(())
 }
 
-pub async fn event_subscribe<F>(mut func: F) -> !
+pub async fn event_subscribe<F>(func: F) -> !
 where
-    F: FnMut(Event) + Send + 'static,
+    F: Fn(Event),
 {
     let mut was_connected = false;
 
