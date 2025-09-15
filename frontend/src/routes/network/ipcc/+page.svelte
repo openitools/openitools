@@ -79,8 +79,8 @@
 			});
 
 			await invoke('install_ipcc', {
-				deviceModel: $hardware.model,
-				iosVersion: $os.ios_ver,
+				expectedModel: $hardware.model,
+				expectedIosVersion: $os.ios_ver,
 				bundle: value
 			});
 

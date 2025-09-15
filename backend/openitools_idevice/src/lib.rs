@@ -1,12 +1,12 @@
 use std::{net::SocketAddr, str::FromStr as _};
 
-use idevice::diagnostics_relay::DiagnosticsRelayClient;
 pub use idevice::{
     IdeviceService,
     lockdown::LockdownClient,
     provider::{IdeviceProvider, UsbmuxdProvider},
     usbmuxd::{UsbmuxdAddr, UsbmuxdConnection, UsbmuxdDevice},
 };
+use idevice::{diagnostics_relay::DiagnosticsRelayClient, syslog_relay::SyslogRelayClient};
 use tokio::time::{Duration, sleep};
 
 pub enum Event {
@@ -78,6 +78,50 @@ pub async fn get_diag_client(provider: &UsbmuxdProvider) -> Result<DiagnosticsRe
         .map_err(|e| format!("failed to connect to lockdownd service: {e:?}"))
 }
 
+pub async fn get_device_model(lockdownd_client: &mut LockdownClient) -> Result<String, String> {
+    lockdownd_client
+        .get_value(Some("ProductType"), None)
+        .await
+        .map(|v| v.as_string().unwrap_or_default().to_string())
+        .map_err(|e| format!("failed to get the device model: {e:?}"))
+}
+
+pub async fn get_device_ios_version(
+    lockdownd_client: &mut LockdownClient,
+) -> Result<String, String> {
+    lockdownd_client
+        .get_value(Some("ProductVersion"), None)
+        .await
+        .map(|v| v.as_string().unwrap_or_default().to_string())
+        .map_err(|e| format!("failed to get the device model: {e:?}"))
+}
+
+pub async fn get_syslog_client(provider: &UsbmuxdProvider) -> Result<SyslogRelayClient, String> {
+    SyslogRelayClient::connect(provider)
+        .await
+        .map_err(|e| format!("failed to create a syslog relay: {e:?}"))
+}
+
+pub async fn install_package<Fut>(
+    provider: &UsbmuxdProvider,
+    data: impl AsRef<[u8]>,
+    cb: impl Fn((u64, ())) -> Fut,
+) -> Result<(), String>
+where
+    Fut: std::future::Future<Output = ()>,
+{
+    idevice::utils::installation::install_bytes_with_callback(
+        provider,
+        data,
+        "jj.ipcc",
+        None,
+        cb,
+        (),
+    )
+    .await
+    .map_err(|e| format!("failed to install package: {e:?}"))
+}
+
 async fn is_device_connected() -> Result<(), String> {
     get_device().await.map(|_| ())
 }
@@ -103,6 +147,6 @@ where
             _ => {} // no change
         }
 
-        sleep(Duration::from_millis(100)).await;
+        sleep(Duration::from_secs(1)).await;
     }
 }

@@ -21,10 +21,7 @@ pub fn run() {
             tauri::RunEvent::Exit => {
                 println!("hey we exit");
             }
-            tauri::RunEvent::ExitRequested { .. } => {
-                rsmobiledevice::device::event_unsubscribe()
-                    .unwrap_or_else(|e| panic!("unable to unsubscribe for idevices, error {e}"));
-            }
+            tauri::RunEvent::ExitRequested { .. } => {}
             _ => {}
         });
 }
