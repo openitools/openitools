@@ -3290,6 +3290,7 @@ dependencies = [
  "log",
  "openitools_idevice",
  "pkg-config",
+ "plist",
  "regex",
  "reqwest",
  "rsmobiledevice",

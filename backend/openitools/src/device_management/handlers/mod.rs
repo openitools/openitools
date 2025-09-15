@@ -1,4 +1,5 @@
 use openitools_idevice::LockdownClient;
+use plist::Value;
 
 pub mod battery;
 pub mod hardware;
@@ -21,5 +22,26 @@ pub async fn get_string_value_or_default(
             log::error!("Failed to get value {domain:?}:{key:?}: {e:?}");
             None
         }
+    }
+}
+
+pub trait RecursiveFind {
+    fn rfind(&self, key: &str) -> Option<Value>;
+}
+
+impl RecursiveFind for plist::Dictionary {
+    fn rfind(&self, key: &str) -> Option<Value> {
+        for (k, v) in self {
+            if k == key {
+                return Some(v.clone());
+            }
+
+            if let Value::Dictionary(dict) = v {
+                if let Some(found) = dict.rfind(key) {
+                    return Some(found);
+                }
+            }
+        }
+        None
     }
 }

@@ -1,40 +1,39 @@
+use openitools_idevice::UsbmuxdProvider;
 use serde::Serialize;
 
-use rsmobiledevice::{
-    device::DeviceClient, device_info::domains::DeviceDomains, devices_collection::SingleDevice,
-};
-
-#[derive(Serialize, Clone)]
+#[derive(Serialize, Clone, Default)]
 pub struct Storage {
     pub total: u64,
     pub used: u64,
     pub available: u64,
 }
 
-pub fn handle_device_storage(device: &DeviceClient<SingleDevice>) -> Storage {
-    let device_info = device.get_device_info();
+pub async fn handle_device_storage(provider: &UsbmuxdProvider) -> Storage {
+    let mut lockdownd_client = match openitools_idevice::get_lockdownd_client(provider).await {
+        Ok(lockdown) => lockdown,
+        Err(e) => {
+            log::error!("something went wrong while getting the lockdownd client: {e:?}");
+            return Storage::default();
+        }
+    };
 
-    let disk_hash = device_info
-        .get_values(DeviceDomains::DiskUsage)
-        .unwrap_or_default();
+    let total = lockdownd_client
+        .get_value(Some("TotalDiskCapacity"), Some("com.apple.disk_usage"))
+        .await
+        .map_or(0, |s| {
+            s.as_unsigned_integer().unwrap_or_default() / 1e+9 as u64
+        });
 
-    let mut total = disk_hash
-        .get("TotalDiskCapacity")
-        .map_or(0, |s| s.parse::<u64>().unwrap_or_default());
-
-    total /= 1e+9 as u64;
-
-    let mut available = disk_hash
-        .get("AmountRestoreAvailable")
-        .map_or(0, |s| s.parse::<u64>().unwrap_or_default());
-
-    available /= 1e+9 as u64;
-
-    let used = total - available;
+    let available = lockdownd_client
+        .get_value(Some("AmountRestoreAvailable"), Some("com.apple.disk_usage"))
+        .await
+        .map_or(0, |s| {
+            s.as_unsigned_integer().unwrap_or_default() / 1e+9 as u64
+        });
 
     Storage {
         total,
-        used,
+        used: total - available,
         available,
     }
 }

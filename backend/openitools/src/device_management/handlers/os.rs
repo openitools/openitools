@@ -1,26 +1,34 @@
+use openitools_idevice::UsbmuxdProvider;
 use serde::Serialize;
 
-use rsmobiledevice::{
-    device::DeviceClient,
-    device_info::{domains::DeviceDomains, keys::DeviceKeys},
-    devices_collection::SingleDevice,
-};
+use super::get_string_value_or_default;
 
-#[derive(Serialize, Clone)]
+#[derive(Serialize, Clone, Default)]
 pub struct OS {
     pub ios_ver: String,
     pub build_num: String,
 }
 
-pub fn handle_device_os(device: &DeviceClient<SingleDevice>) -> OS {
-    let device_info = device.get_device_info();
+pub async fn handle_device_os(provider: &UsbmuxdProvider) -> OS {
+    let mut lockdownd_client = match openitools_idevice::get_lockdownd_client(provider).await {
+        Ok(lockdown) => lockdown,
+        Err(e) => {
+            log::error!("Something went wrong while getting the lockdownd client: {e:?}");
+            return OS::default();
+        }
+    };
 
-    OS {
-        ios_ver: device_info
-            .get_value(DeviceKeys::ProductVersion, DeviceDomains::All)
-            .unwrap_or("unknown".into()),
-        build_num: device_info
-            .get_value(DeviceKeys::BuildVersion, DeviceDomains::All)
-            .unwrap_or("unknown".into()),
-    }
+    let ios_ver = get_string_value_or_default(
+        &mut lockdownd_client,
+        Some("HumanReadableProductVersionString"),
+        None,
+    )
+    .await
+    .unwrap_or_default();
+
+    let build_num = get_string_value_or_default(&mut lockdownd_client, Some("BuildVersion"), None)
+        .await
+        .unwrap_or_default();
+
+    OS { ios_ver, build_num }
 }

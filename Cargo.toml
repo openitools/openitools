@@ -5,6 +5,7 @@ resolver = "2"
 
 [workspace.dependencies]
 tokio = { version = "1.45.1", features = ["full"] }
+plist = { version = "*" }
 
 [workspace.lints.clippy]
 pedantic = { level = "warn", priority = -1 }
