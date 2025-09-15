@@ -1,5 +1,6 @@
 use std::{net::SocketAddr, str::FromStr as _};
 
+use idevice::diagnostics_relay::DiagnosticsRelayClient;
 pub use idevice::{
     IdeviceService,
     lockdown::LockdownClient,
@@ -54,7 +55,25 @@ pub async fn get_provider() -> Result<UsbmuxdProvider, String> {
 }
 
 pub async fn get_lockdownd_client(provider: &UsbmuxdProvider) -> Result<LockdownClient, String> {
-    LockdownClient::connect(provider)
+    let mut lockdownd_client = LockdownClient::connect(provider)
+        .await
+        .map_err(|e| format!("failed to connect to lockdownd service: {e:?}"))?;
+
+    lockdownd_client
+        .start_session(
+            &provider
+                .get_pairing_file()
+                .await
+                .map_err(|e| format!("Failed to get the pairing file: {e:?}"))?,
+        )
+        .await
+        .map_err(|e| format!("Failed to start a new lockdownd session: {e:?}"))?;
+
+    Ok(lockdownd_client)
+}
+
+pub async fn get_diag_client(provider: &UsbmuxdProvider) -> Result<DiagnosticsRelayClient, String> {
+    DiagnosticsRelayClient::connect(provider)
         .await
         .map_err(|e| format!("failed to connect to lockdownd service: {e:?}"))
 }
