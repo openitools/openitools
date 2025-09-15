@@ -40,6 +40,8 @@ async_zip = { version = "0.0.17", features = ["full"] }
 futures-util = "0.3.31"
 tokio-tar = "0.3.1"
 
+plist = { workspace = true }
+
 openitools_idevice = { path = "../openitools_idevice" }
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]

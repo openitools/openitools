@@ -1,21 +1,24 @@
-use openitools_idevice::LockdownClient;
-use rsmobiledevice::{
-    device::DeviceClient,
-    device_info::{domains::DeviceDomains, keys::DeviceKeys},
-    devices_collection::SingleDevice,
-};
+use openitools_idevice::{IdeviceProvider, LockdownClient, UsbmuxdProvider};
 use serde::Serialize;
 
 use super::get_string_value_or_default;
 
-#[derive(Serialize, Clone)]
+#[derive(Serialize, Clone, Default)]
 pub struct Hardware {
     pub model: String,
     pub model_number: String,
     pub region: String,
 }
-pub async fn handle_device_hardware(device: &mut LockdownClient) -> Hardware {
-    let region_code = get_string_value_or_default(device, Some("RegionInfo"), None)
+pub async fn handle_device_hardware(provider: &UsbmuxdProvider) -> Hardware {
+    let mut lockdownd_client = match openitools_idevice::get_lockdownd_client(provider).await {
+        Ok(lockdown) => lockdown,
+        Err(e) => {
+            log::error!("Something went wrong while getting the lockdownd client: {e:?}");
+            return Hardware::default();
+        }
+    };
+
+    let region_code = get_string_value_or_default(&mut lockdownd_client, Some("RegionInfo"), None)
         .await
         .unwrap_or_default();
 
@@ -35,9 +38,10 @@ pub async fn handle_device_hardware(device: &mut LockdownClient) -> Hardware {
         _ => "unknown".into(),
     };
 
-    let model_number_code = get_string_value_or_default(device, Some("ModelNumber"), None)
-        .await
-        .unwrap_or_default();
+    let model_number_code =
+        get_string_value_or_default(&mut lockdownd_client, Some("ModelNumber"), None)
+            .await
+            .unwrap_or_default();
 
     let model_meaning = match model_number_code.chars().next().unwrap_or_default() {
         'F' => "Refurbished Device",
@@ -50,7 +54,7 @@ pub async fn handle_device_hardware(device: &mut LockdownClient) -> Hardware {
 
     let model_number = format!("{model_number_code} ({model_meaning})",);
 
-    let model = get_string_value_or_default(device, Some("ProductType"), None)
+    let model = get_string_value_or_default(&mut lockdownd_client, Some("ProductType"), None)
         .await
         .unwrap_or("Unknown".into());
 
