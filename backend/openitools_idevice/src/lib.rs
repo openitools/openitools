@@ -105,10 +105,7 @@ pub async fn get_syslog_client(provider: &UsbmuxdProvider) -> Result<SyslogRelay
 pub async fn install_package(
     provider: &UsbmuxdProvider,
     data: impl AsRef<[u8]>,
-) -> Result<(), String>
-where
-    Fut: std::future::Future<Output = ()>,
-{
+) -> Result<(), String> {
     idevice::utils::installation::install_bytes(provider, data, None)
         .await
         .map_err(|e| format!("failed to install package: {e:?}"))
