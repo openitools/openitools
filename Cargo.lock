@@ -311,6 +311,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "async_zip"
+version = "0.0.18"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0d8c50d65ce1b0e0cb65a785ff615f78860d7754290647d3b983208daa4f85e6"
+dependencies = [
+ "async-compression",
+ "crc32fast",
+ "futures-lite",
+ "pin-project",
+ "thiserror 2.0.12",
+ "tokio",
+ "tokio-util",
+]
+
+[[package]]
 name = "atk"
 version = "0.18.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2157,10 +2172,10 @@ checksum = "b9e0384b61958566e926dc50660321d12159025e767c18e043daf26b70104c39"
 [[package]]
 name = "idevice"
 version = "0.1.42"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c9e67d29e802a57b44bd4982e4cba91f84b6e148c92f0e591a22cdca82f86e18"
+source = "git+https://github.com/jkcoxson/idevice/?rev=da17fa01dcab86250d20c93e033c7bdf899a073c#da17fa01dcab86250d20c93e033c7bdf899a073c"
 dependencies = [
  "async-stream",
+ "async_zip 0.0.18",
  "base64 0.22.1",
  "byteorder",
  "bytes",
@@ -3103,7 +3118,7 @@ dependencies = [
 name = "openitools"
 version = "0.1.0"
 dependencies = [
- "async_zip",
+ "async_zip 0.0.17",
  "env_logger",
  "futures-util",
  "log",

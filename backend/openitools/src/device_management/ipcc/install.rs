@@ -80,14 +80,8 @@ async fn run_installation(
     // // 4. Install with callback
     // let installer = device_client.get_device_installer();
 
-    openitools_idevice::install_package(&provider, &zip_bytes, async |(progress, ())| {
-        log::debug!("Installtion Progress: {progress}");
-
-        if progress == 100 {
-            emit_bundle_installation_status(&window, true);
-        }
-    })
-    .await?;
+    openitools_idevice::install_package(&provider, &zip_bytes).await?;
+    emit_bundle_installation_status(&window, true);
 
     // installer
     //     .install_from_reader_with_callback(&mut zip_cursor, None, move |command, status| {

@@ -102,24 +102,16 @@ pub async fn get_syslog_client(provider: &UsbmuxdProvider) -> Result<SyslogRelay
         .map_err(|e| format!("failed to create a syslog relay: {e:?}"))
 }
 
-pub async fn install_package<Fut>(
+pub async fn install_package(
     provider: &UsbmuxdProvider,
     data: impl AsRef<[u8]>,
-    cb: impl Fn((u64, ())) -> Fut,
 ) -> Result<(), String>
 where
     Fut: std::future::Future<Output = ()>,
 {
-    idevice::utils::installation::install_bytes_with_callback(
-        provider,
-        data,
-        "jj.ipcc",
-        None,
-        cb,
-        (),
-    )
-    .await
-    .map_err(|e| format!("failed to install package: {e:?}"))
+    idevice::utils::installation::install_bytes(provider, data, None)
+        .await
+        .map_err(|e| format!("failed to install package: {e:?}"))
 }
 
 async fn is_device_connected() -> Result<(), String> {
