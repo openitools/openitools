@@ -1,4 +1,4 @@
-use openitools_idevice::{IdeviceProvider, LockdownClient, UsbmuxdProvider};
+use openitools_idevice::UsbmuxdProvider;
 use serde::Serialize;
 
 use super::get_string_value_or_default;
