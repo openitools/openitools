@@ -9,10 +9,9 @@
 	import * as Popover from '$lib/components/ui/popover/index.js';
 	import { cn, when } from '$lib/utils.js';
 	import { invoke } from '@tauri-apps/api/core';
-	import { getDeviceContext } from '$lib/device-context';
+	import { getDeviceContext, empty_hardware, empty_os } from '$lib/device-context';
 	import { listen } from '@tauri-apps/api/event';
-
-	const { hardware, os, connected, storage, battery } = getDeviceContext();
+	import { get } from 'svelte/store';
 
 	let open = $state(false);
 	let value = $state('');
@@ -22,25 +21,34 @@
 	let installResult = $state<'idle' | 'success' | 'error'>('idle');
 
 	let bundles = $state<{ bundle_name: string }[]>([]);
+	const { hardware, os, connected } = getDeviceContext();
 
-	onMount(async () => {
-		try {
-			await when(connected);
-			console.log($hardware);
-			console.log($os);
-			console.log($storage);
-			console.log($battery);
-			const result = (await invoke('get_bundles', {
-				deviceModel: $hardware.model,
-				iosVersion: $os.ios_ver
-			})) as {
-				bundle_name: string;
-			}[];
-			bundles = result;
-			loading = false;
-		} catch (e) {
-			console.error('Failed to load bundles from Rust:', e);
-		}
+	$effect(() => {
+		(async () => {
+			if ($connected) {
+				const hw = $hardware;
+				const _os = $os;
+
+				console.log(hw);
+				console.log(_os);
+
+				if (hw == empty_hardware || _os == empty_os) {
+					return;
+				}
+
+				const result = (await invoke('get_bundles', {
+					deviceModel: $hardware.model,
+					iosVersion: $os.ios_ver
+				})) as {
+					bundle_name: string;
+				}[];
+
+				bundles = result;
+				loading = false;
+			} else {
+				console.log('Not Connected');
+			}
+		})();
 	});
 
 	// We want to refocus the trigger button when the user selects
@@ -104,13 +112,13 @@
 	connect the device
 {:else if loading}
 	<div class="flex h-screen w-full items-center justify-center">
-		<div class="h-10 w-10 animate-spin rounded-full border-4 border-muted border-t-primary"></div>
+		<div class="border-muted border-t-primary h-10 w-10 animate-spin rounded-full border-4"></div>
 	</div>
 {:else}
 	<Card.Root class="flex h-full w-full flex-1 flex-col items-center justify-center p-4">
 		<Card.Header class="space-y-1 text-center">
-			<Card.Title class="text-2xl font-semibold text-foreground">Install IPCC</Card.Title>
-			<Card.Description class="text-sm text-muted-foreground">
+			<Card.Title class="text-foreground text-2xl font-semibold">Install IPCC</Card.Title>
+			<Card.Description class="text-muted-foreground text-sm">
 				Select the bundle and hit install
 			</Card.Description>
 		</Card.Header>
