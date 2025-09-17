@@ -18,13 +18,9 @@ pub async fn handle_device_os(provider: &UsbmuxdProvider) -> OS {
         }
     };
 
-    let ios_ver = get_string_value_or_default(
-        &mut lockdownd_client,
-        Some("HumanReadableProductVersionString"),
-        None,
-    )
-    .await
-    .unwrap_or_default();
+    let ios_ver = get_string_value_or_default(&mut lockdownd_client, Some("ProductVersion"), None)
+        .await
+        .unwrap_or_default();
 
     let build_num = get_string_value_or_default(&mut lockdownd_client, Some("BuildVersion"), None)
         .await
