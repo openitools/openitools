@@ -60,7 +60,13 @@ pub async fn download_bundle(
 
 #[tauri::command]
 pub async fn get_bundles(device_model: String, ios_version: String) -> Vec<Bundle> {
-    let metadata = get_metadata(&device_model).await.unwrap();
+    let metadata = match get_metadata(&device_model).await {
+        Ok(md) => md,
+        Err(e) => {
+            log::error!("failed to get the metadata for ({device_model}:{ios_version}): {e}");
+            return Vec::default();
+        }
+    };
 
     for firmware in metadata.fw {
         if firmware.version == ios_version {
@@ -68,10 +74,31 @@ pub async fn get_bundles(device_model: String, ios_version: String) -> Vec<Bundl
                 "{BASE_IPCC_URL}/{}/{ios_version}/bundles.json",
                 urlencoding::encode(&device_model)
             );
-            let response = reqwest::get(&url).await.unwrap();
+            let response = match reqwest::get(&url).await {
+                Ok(res) => res,
+                Err(e) => {
+                    log::error!(
+                        "failed to get the bundles.json for ({device_model}:{ios_version}): {e}"
+                    );
+                    return Vec::default();
+                }
+            };
 
-            let bundles =
-                serde_json::from_str::<BundlesFile>(&response.text().await.unwrap()).unwrap();
+            let response_text = match response.text().await {
+                Ok(res_t) => res_t,
+                Err(e) => {
+                    log::error!("failed to get the text of the response: {e}");
+                    return Vec::default();
+                }
+            };
+
+            let bundles = match serde_json::from_str::<BundlesFile>(&response_text) {
+                Ok(b) => b,
+                Err(e) => {
+                    log::error!("failed to convert the response bundles.json to a struct: {e}");
+                    return Vec::default();
+                }
+            };
 
             return bundles.bundles;
         }

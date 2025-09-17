@@ -1,6 +1,4 @@
-use std::sync::{atomic::AtomicBool, Arc};
-
-use openitools_idevice::{Event, IdeviceProvider};
+use openitools_idevice::Event;
 use tauri::Emitter;
 
 use super::handlers::{
