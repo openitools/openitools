@@ -64,6 +64,26 @@ jobs:
         with:
           shared-key: "openitools"
 
+      - name: Get app version
+        id: version
+        run: |
+          VERSION=$(grep '^version' backend/openitools/Cargo.toml | head -n1 | awk -F\" '{print $2}')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Extract changelog
+        id: changelog
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          
+          sed -n "/^## \[$VERSION\]/,/^## \[/ {
+            /^## \[/!p
+          }" CHANGELOG.md > RELEASE_BODY.md
+
+          
+          echo "body<<EOF" >> $GITHUB_OUTPUT
+          cat RELEASE_BODY.md >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
       - uses: kandrelczyk/tauri-action@feature/bundle-types # TODO: replace it with the original one once merged
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -71,9 +91,9 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
 
         with:
-          tagName: OpeniTools-v__VERSION__
-          releaseName: "OpeniTools v__VERSION__"
-          releaseBody: "See the assets to download this version and install."
+          tagName: v__VERSION__
+          releaseName: "v__VERSION__"
+          releaseBody: ${{ steps.changelog.outputs.body }}
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}
