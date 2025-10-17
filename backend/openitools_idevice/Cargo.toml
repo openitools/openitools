@@ -4,8 +4,9 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-idevice = { git = "https://github.com/jkcoxson/idevice/", rev = "da17fa01dcab86250d20c93e033c7bdf899a073c", features = [
+idevice = { git = "https://github.com/jkcoxson/idevice/", rev = "da17fa01dcab86250d20c93e033c7bdf899a073c", default-features = false, features = [
   "full",
+  "ring",
 ] }
 tokio = { workspace = true }
 

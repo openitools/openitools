@@ -124,6 +124,7 @@ where
 
     loop {
         let is_connected = is_device_connected().await;
+        println!("{is_connected:#?}");
         match is_connected {
             Ok(()) if !was_connected => {
                 was_connected = true;
