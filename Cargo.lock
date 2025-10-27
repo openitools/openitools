@@ -41,6 +41,7 @@ dependencies = [
 [[package]]
 name = "airplay"
 version = "0.1.0"
+source = "git+https://github.com/abdullah-albanna/rairplay#3a30d18ae1fc09f3409ed9c951850d11939d61a4"
 dependencies = [
  "aes",
  "axum",
