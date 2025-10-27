@@ -1,0 +1,37 @@
+[package]
+name = "openitools-airplay"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+gst = { package = "gstreamer", version = "0.24.2" }
+gst_app = { package = "gstreamer-app", version = "0.24.2" }
+
+# produces a `libgstrswebrtc.so` file that we need to link to; to get the `webrtcsink` element
+gst-plugin-webrtc = { package = "gst-plugin-webrtc", git = "https://gitlab.freedesktop.org/gstreamer/gst-plugins-rs/" }
+
+airplay = { path = "/home/abdullah/Documents/airplay/rairplay/airplay/" }
+mdns-sd = "0.11.5"
+
+tokio.workspace = true
+
+
+httparse = "1"
+pin-project-lite = "0.2"
+tower = "0.5.1"
+hyper = { version = "1", features = ["server", "http1"] }
+hyper-util = { version = "0.1", features = ["tokio"] }
+tokio-util = { version = "0.7", features = ["codec", "io"] }
+# clap = { version = "4.5.39", features = ["derive"] }
+# gstreamer = { version = "0.24.2", features = ["v1_24"] }
+
+tracing = "0.1.40"
+tracing-subscriber = { version = "0.3.18", features = ["std", "env-filter"] }
+tracing-chrome = "0.7.2"
+fastrand = "2.3.0"
+hostname = "0.4.1"
+
+# gstreamer-app = { version = "0.24.2", features = ["v1_24"] }
+
+[lints]
+workspace = true

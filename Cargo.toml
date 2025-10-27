@@ -1,11 +1,18 @@
 [workspace]
-members = ["backend/openitools_idevice", "backend/openitools"]
+members = [
+  "backend/openitools_idevice",
+  "backend/openitools",
+  "backend/openitools-airplay",
+]
 resolver = "2"
 
 
 [workspace.dependencies]
 tokio = { version = "1.45.1", features = ["full"] }
 plist = { version = "*" }
+
+# [patch.crates-io]
+# wry = { path = "../wry" }
 
 [workspace.lints.clippy]
 pedantic = { level = "warn", priority = -1 }

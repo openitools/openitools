@@ -43,6 +43,7 @@
 			case 'settings':
 			case 'feedback':
 			case 'support':
+			case 'multimedia':
 				return path.charAt(0).toUpperCase() + path.slice(1);
 
 			case 'ipcc':
@@ -52,6 +53,9 @@
 
 			case 'docs':
 				return 'Documentation';
+
+			case 'screen-mirroring':
+				return 'Screen-Mirroring';
 
 			default:
 				return path;
