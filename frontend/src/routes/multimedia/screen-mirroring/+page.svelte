@@ -7,6 +7,11 @@
 	import GstWebRTCAPI from './gst-webrtc-api';
 	import type ComChannel from './gst-webrtc-api/com-channel';
 
+  // UI components
+	import { buttonVariants } from '$lib/components/ui/button/index.js';
+	import * as Card from '$lib/components/ui/card/index.js';
+	import * as Drawer from '$lib/components/ui/drawer/index.js';
+
 	// the video element it self
 	//
 	// it's in a variable so we can have more control to it, like pushing the video stream
@@ -88,5 +93,40 @@
 	});
 </script>
 
-<!-- `bind:this` binds the element it self to a variable -->
-<video bind:this={videoEl} autoplay playsinline muted> </video>
+<!-- The main container -->
+<!-- this is a flexbox container that centers its content both vertically and horizontally -->
+<div class="relative w-full h-full flex flex-col gap-2 items-center justify-center bg-gray">
+  <div class="absolute left-5 top-5 text-sm text-gray-400 italic">
+    <!-- You can add any additional info here -->
+    FPS: <!-- You can add dynamic FPS value here if needed -->
+    <br />
+    Other stats...
+  </div>
+  <!-- `bind:this` binds the element it self to a variable -->
+  <video class="w-100 h-200 bg-gray-500 rounded-2xl" bind:this={videoEl} autoplay playsinline muted> </video>
+
+    <!-- This is the `Settings` button -->
+		<Card.Content>
+			<Drawer.Root>
+				<Drawer.Trigger class={buttonVariants({ variant: 'outline' })}>Settings</Drawer.Trigger>
+				<Drawer.Content>
+					<div class="mx-auto w-full max-w-md">
+						<Drawer.Header>
+							<Drawer.Title>Settings</Drawer.Title>
+							<Drawer.Description>
+								Set up your connection preferences.
+							</Drawer.Description>
+						</Drawer.Header>
+
+						<div class="m-4 p-4 h-20 flex items-center justify-center border border-dashed rounded-lg">
+              <p>Work in progress</p>
+						</div>
+
+						<Drawer.Footer>
+							<Drawer.Close class={buttonVariants({ variant: 'outline' })}>Close</Drawer.Close>
+						</Drawer.Footer>
+					</div>
+				</Drawer.Content>
+			</Drawer.Root>
+		</Card.Content>
+</div>
