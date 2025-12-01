@@ -1,0 +1,37 @@
+<script lang="ts">
+	import * as Collapsible from '$lib/components/ui/collapsible/index.js';
+	import * as Sidebar from '$lib/components/ui/sidebar/index.js';
+	import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
+	import FileIcon from '@lucide/svelte/icons/file';
+	import FolderIcon from '@lucide/svelte/icons/folder';
+	import FolderOpenIcon from '@lucide/svelte/icons/folder-open';
+
+	import type { FSTree } from './models';
+	import * as TreeView from '$lib/components/tree-view';
+
+	let { fsTree }: { fsTree: FSTree } = $props();
+
+	let open = $state(false);
+</script>
+
+{#snippet Tree(node: FSTree)}
+	{#if node.info.isFile}
+		<TreeView.File name={node.path} />
+	{:else}
+		<TreeView.Folder name={node.path}>
+			{#snippet icon(name)}
+				<ChevronRightIcon class="transition-transform" />
+			{/snippet}
+
+			{#each node.children as child (child.path)}
+				{@render Tree(child)}
+			{/each}
+		</TreeView.Folder>
+	{/if}
+{/snippet}
+
+<TreeView.Root>
+	{#each fsTree.children as node (node.path)}
+		{@render Tree(node)}
+	{/each}
+</TreeView.Root>

@@ -8,6 +8,7 @@ pub use idevice::{
 };
 use idevice::{diagnostics_relay::DiagnosticsRelayClient, syslog_relay::SyslogRelayClient};
 use tokio::time::{Duration, sleep};
+pub mod afc;
 
 pub enum Event {
     Connected,

@@ -6,6 +6,9 @@ resolver = "2"
 [workspace.dependencies]
 tokio = { version = "1.45.1", features = ["full"] }
 plist = { version = "*" }
+serde = { version = "1", features = ["derive"] }
+fuser = "0.16.0"
+rfuse3 = { path = "/home/abdullah/Documents/rk8s/project/rfuse3" }
 
 [workspace.lints.clippy]
 pedantic = { level = "warn", priority = -1 }

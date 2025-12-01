@@ -4,6 +4,7 @@
 	import Send from '@lucide/svelte/icons/send';
 	import Settings2 from '@lucide/svelte/icons/settings-2';
 	import Network from '@lucide/svelte/icons/network';
+	import Play from '@lucide/svelte/icons/play';
 
 	const data = {
 		navMain: [
@@ -21,6 +22,18 @@
 					// 	title: 'APN',
 					// 	url: '/network/apn'
 					// }
+				]
+			},
+			{
+				title: 'MultiMedia',
+				url: '/multimedia',
+				icon: Play,
+				isActive: true,
+				items: [
+					{
+						title: 'File Explorer',
+						url: '/multimedia/file-explorer'
+					}
 				]
 			}
 		],
