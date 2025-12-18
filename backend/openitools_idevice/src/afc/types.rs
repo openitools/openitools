@@ -1,3 +1,5 @@
+#[cfg(target_os = "macos")]
+use std::time::SystemTime;
 use std::time::UNIX_EPOCH;
 
 use chrono::TimeZone as _;
@@ -37,21 +39,6 @@ impl From<FileInfo> for PathInfo {
     }
 }
 
-impl From<fuser::FileType> for FileType {
-    fn from(value: fuser::FileType) -> Self {
-        use fuser::FileType as FT;
-        match value {
-            FT::NamedPipe => Self::NamedPipe,
-            FT::CharDevice => Self::CharDevice,
-            FT::BlockDevice => Self::BlockDevice,
-            FT::Directory => Self::Directory,
-            FT::RegularFile => Self::File,
-            FT::Symlink => Self::Symlink,
-            FT::Socket => Self::Socket,
-        }
-    }
-}
-
 impl From<rfuse3::FileType> for FileType {
     fn from(value: rfuse3::FileType) -> Self {
         use rfuse3::FileType as FT;
@@ -63,22 +50,6 @@ impl From<rfuse3::FileType> for FileType {
             FT::RegularFile => Self::File,
             FT::Symlink => Self::Symlink,
             FT::Socket => Self::Socket,
-        }
-    }
-}
-
-impl From<FileType> for fuser::FileType {
-    fn from(value: FileType) -> Self {
-        use FileType as FT;
-        match value {
-            FT::NamedPipe => Self::NamedPipe,
-            FT::CharDevice => Self::CharDevice,
-            FT::BlockDevice => Self::BlockDevice,
-            FT::Directory => Self::Directory,
-            FT::File => Self::RegularFile,
-            FT::Symlink => Self::Symlink,
-            FT::Socket => Self::Socket,
-            _ => unreachable!(),
         }
     }
 }
@@ -114,29 +85,6 @@ fn naive_to_systemtime(ndt: chrono::NaiveDateTime) -> std::time::SystemTime {
 }
 
 impl PathInfo {
-    pub fn to_fuse_file_attr(self, ino: u64) -> fuser::FileAttr {
-        fuser::FileAttr {
-            ino,
-            size: self.size as _,
-            blocks: self.blocks as _,
-            mtime: naive_to_systemtime(self.modified),
-            ctime: naive_to_systemtime(self.creation),
-            kind: self.file_type.into(),
-            perm: 0o755,
-            // default
-            atime: UNIX_EPOCH,
-
-            crtime: UNIX_EPOCH,
-
-            nlink: 1,
-            uid: 501,
-            gid: 20,
-            rdev: 0,
-            flags: 0,
-            blksize: 512,
-        }
-    }
-
     pub fn to_rfuse_file_attr(self, ino: u64) -> rfuse3::raw::prelude::FileAttr {
         rfuse3::raw::prelude::FileAttr {
             ino,
@@ -147,14 +95,18 @@ impl PathInfo {
             kind: self.file_type.into(),
             perm: 0o755,
             // default
-            atime: UNIX_EPOCH.into(),
+            atime: SystemTime::now().into(),
 
-            // crtime: UNIX_EPOCH,
+            #[cfg(target_os = "macos")]
+            crtime: SystemTime::now().into(),
+
             nlink: 1,
             uid: 501,
             gid: 20,
             rdev: 0,
-            // flags: 0,
+
+            #[cfg(target_os = "macos")]
+            flags: 0,
             blksize: 512,
         }
     }

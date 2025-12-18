@@ -39,7 +39,6 @@ plist = { workspace = true }
 openitools_idevice = { path = "../openitools_idevice" }
 tauri-plugin-drag = "2.1.0"
 tempfile = "3.23.0"
-fuser = { workspace = true }
 rfuse3 = { workspace = true }
 parking_lot = "0.12.5"
 

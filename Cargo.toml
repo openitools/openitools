@@ -7,8 +7,7 @@ resolver = "2"
 tokio = { version = "1.45.1", features = ["full"] }
 plist = { version = "*" }
 serde = { version = "1", features = ["derive"] }
-fuser = "0.16.0"
-rfuse3 = { path = "/home/abdullah/Documents/rk8s/project/rfuse3" }
+rfuse3 = "0.0.5"
 
 [workspace.lints.clippy]
 pedantic = { level = "warn", priority = -1 }

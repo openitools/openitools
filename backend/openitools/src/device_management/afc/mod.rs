@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 
-use fuser::MountOption;
 use futures_util::{future::BoxFuture, lock::Mutex, FutureExt};
 use openitools_idevice::afc::{get_afc_client, AfcClient, AfcFopenMode, FSTree, FileType};
 use rfuse3::{raw::Session, MountOptions};

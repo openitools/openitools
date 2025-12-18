@@ -1442,21 +1442,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "42703706b716c37f96a77aea830392ad231f44c9e9a67872fa5548707e11b11c"
 
 [[package]]
-name = "fuser"
-version = "0.16.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0bb29a3ae32279fe3e79a958fe01899f5fb23eadccee919cf88e145b54ed9367"
-dependencies = [
- "libc",
- "log",
- "memchr",
- "nix 0.29.0",
- "page_size",
- "smallvec",
- "zerocopy",
-]
-
-[[package]]
 name = "futf"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2198,6 +2183,7 @@ checksum = "b9e0384b61958566e926dc50660321d12159025e767c18e043daf26b70104c39"
 [[package]]
 name = "idevice"
 version = "0.1.50"
+source = "git+https://github.com/jkcoxson/idevice#e3c12ddf98df3b4cc3120595a975da8f4d18e4e3"
 dependencies = [
  "async-stream",
  "async_zip",
@@ -3215,7 +3201,6 @@ version = "0.1.1"
 dependencies = [
  "async_zip",
  "env_logger",
- "fuser",
  "futures-util",
  "log",
  "openitools_idevice",
@@ -3243,7 +3228,6 @@ name = "openitools_idevice"
 version = "0.1.0"
 dependencies = [
  "chrono",
- "fuser",
  "idevice",
  "rfuse3",
  "serde",
@@ -3332,16 +3316,6 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror 2.0.16",
-]
-
-[[package]]
-name = "page_size"
-version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "30d5b2194ed13191c1999ae0704b7839fb18384fa22e49b57eeaa97d79ce40da"
-dependencies = [
- "libc",
- "winapi",
 ]
 
 [[package]]
@@ -4110,6 +4084,8 @@ dependencies = [
 [[package]]
 name = "rfuse3"
 version = "0.0.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "848f037ea6f58bf93045c366e6099146b2b227c06646c584b64ed7d4a089ad71"
 dependencies = [
  "aligned_box",
  "async-notify",

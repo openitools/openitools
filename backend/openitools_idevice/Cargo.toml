@@ -4,11 +4,10 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-idevice = { features = ["full"], path = "../../../idevice/idevice" }
+idevice = { features = ["full"], git = "https://github.com/jkcoxson/idevice" }
 tokio = { workspace = true }
 serde = { workspace = true }
 chrono = { version = "0.4.42", features = ["serde"] }
-fuser = { workspace = true }
 rfuse3 = { workspace = true }
 
 [lints]
