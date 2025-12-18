@@ -9,29 +9,42 @@
 	import { getCurrentWebview } from '@tauri-apps/api/webview';
 	import { onMount } from 'svelte';
 	import { invoke } from '@tauri-apps/api/core';
+	import { getDeviceContext } from '$lib/device-context';
 
-	getCurrentWebview().onDragDropEvent((event) => {
-		if (event.payload.type === 'drop') {
-			console.log('User dropped', event.payload.paths);
-		} else if (event.payload.type === 'enter') {
-			console.log('entered');
-		} else if (event.payload.type === 'leave') {
-		} else {
-			console.log('File drop cancelled');
-		}
-	});
+	// getCurrentWebview().onDragDropEvent((event) => {
+	// 	if (event.payload.type === 'drop') {
+	// 		console.log('User dropped', event.payload.paths);
+	// 	} else if (event.payload.type === 'enter') {
+	// 		console.log('entered');
+	// 	} else if (event.payload.type === 'leave') {
+	// 	} else {
+	// 		console.log('File drop cancelled');
+	// 	}
+	// });
 
 	let fsTree: FSTree | null = $state(null);
+	let loading = $state<boolean>(false);
 
-	onMount(async () => {
-		fsTree = await invoke<FSTree>('dump_fs_tree');
-		console.log(fsTree);
+	let { connected } = getDeviceContext();
 
-		await invoke('ddd');
+	$effect(() => {
+		if ($connected && fsTree === null && !loading) {
+			loading = true;
+			(async () => {
+				try {
+					fsTree = await invoke<FSTree>('dump_fs_tree');
+					console.log(fsTree);
+				} finally {
+					loading = false;
+				}
+			})();
+		}
 	});
 </script>
 
-{#if fsTree === null}
+{#if !$connected}
+	Device not connected
+{:else if fsTree === null}
 	loading ...
 {:else}
 	<Resizable.PaneGroup direction="horizontal">

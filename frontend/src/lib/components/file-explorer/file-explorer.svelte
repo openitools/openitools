@@ -11,6 +11,7 @@
 	import { draggable, droppable, type DragDropState } from '@thisux/sveltednd';
 	import { startDrag } from '@crabnebula/tauri-plugin-drag';
 	import { invoke } from '@tauri-apps/api/core';
+	import { path } from '@tauri-apps/api';
 
 	let selected = $state<string[]>([]);
 
@@ -74,10 +75,9 @@
 			filesPath: filesToCopy
 		});
 
-		// const tempFilePaths: string[] = ['/tmp/.tar/zen-x86_64.AppImage'];
 		console.log(tempFilesPath);
 
-		await startDrag({ item: tempFilesPath, icon: '/home/abdullah/file.patch' });
+		await startDrag({ item: tempFilesPath, icon: await path.resolveResource('icons/32x32.png') });
 	}
 
 	const isFile = (node: FSTree) => node.info.file_type.toString() === 'File';

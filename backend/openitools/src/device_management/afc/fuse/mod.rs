@@ -77,6 +77,12 @@ impl AfcFS {
             gid: 0,
             rdev: 0,
             blksize: 4096,
+
+            #[cfg(target_os = "macos")]
+            crtime: SystemTime::now().into(),
+
+            #[cfg(target_os = "macos")]
+            flags: 0,
         }
     }
 }

@@ -98,6 +98,9 @@ pub async fn dump_fs_tree() -> FSTree {
 
 #[tauri::command]
 pub async fn mount_fuse(files_path: Vec<String>) -> Vec<String> {
+    #[cfg(not(target_family = "unix"))]
+    return vec![];
+
     let afc = get_afc_client().await;
 
     let mut tempdir = tempfile::tempdir().unwrap();
@@ -130,16 +133,15 @@ pub async fn mount_fuse(files_path: Vec<String>) -> Vec<String> {
 
                 tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
 
-                mount_handle
-                    .unmount()
-                    .await
-                    .map_err(|e| {
-                        eprintln!("Unmount failed: {}", e);
-                        e
-                    })
-                    .unwrap();
+                match mount_handle.unmount().await {
+                    Ok(()) => {
+                        tokio::fs::remove_dir_all(tempdir1).await;
+                    }
+                    Err(e) => {
+                        eprintln!("Failed to unmount fuse: {e}");
+                    }
+                }
 
-                tokio::fs::remove_dir_all(tempdir1).await;
             }
         }
     });
@@ -148,48 +150,6 @@ pub async fn mount_fuse(files_path: Vec<String>) -> Vec<String> {
         .into_iter()
         .map(|s| tempdir.join(s).to_string_lossy().to_string())
         .collect()
-}
-
-#[tauri::command]
-pub async fn ddd() {
-    // let afc = get_afc_client().await;
-    // println!("got the afc");
-    // let fs = AfcFS::new(vec!["/zen-x86_64.AppImage".into()], afc);
-    // println!("done fs");
-    //
-    // let mountpoint = "/tmp/.tar";
-    //
-    // let mut mount_handle = Session::new(MountOptions::default())
-    //     .mount_with_unprivileged(fs, mountpoint)
-    //     .await
-    //     .unwrap();
-    //
-    // println!("mounted");
-    //
-    // tokio::select! {
-    //     res = &mut mount_handle => {
-    //         match res {
-    //             Ok(_) => println!("Filesystem exited normally"),
-    //             Err(e) => {
-    //                 eprintln!("Filesystem runtime error: {}", e);
-    //             }
-    //         }
-    //     },
-    //     _ = tokio::signal::ctrl_c() => {
-    //         println!("Received exit signal, unmounting filesystem...");
-    //     }
-    // }
-    //
-    // // Unmount after the select completes to avoid overlapping borrows
-    // mount_handle
-    //     .unmount()
-    //     .await
-    //     .map_err(|e| {
-    //         eprintln!("Unmount failed: {}", e);
-    //         e
-    //     })
-    //     .unwrap();
-    // // fuser::mount2(fs, "/tmp/.tar", &options).unwrap();
 }
 
 #[tauri::command]
