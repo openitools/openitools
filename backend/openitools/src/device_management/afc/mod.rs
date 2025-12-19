@@ -119,7 +119,6 @@ pub async fn mount_fuse(files_path: Vec<String>) -> Vec<String> {
         }
         mount_options
             .fs_name("OpeniTools-Fuse")
-            .allow_other(true)
             .read_only(true)
             .nonempty(true);
 

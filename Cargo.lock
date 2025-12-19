@@ -3230,6 +3230,7 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "idevice",
+ "libc",
  "rfuse3",
  "serde",
  "tokio",

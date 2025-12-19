@@ -85,6 +85,12 @@ fn naive_to_systemtime(ndt: chrono::NaiveDateTime) -> std::time::SystemTime {
 
 impl PathInfo {
     pub fn to_rfuse_file_attr(self, ino: u64) -> rfuse3::raw::prelude::FileAttr {
+        let perm = match self.file_type {
+            FileType::Directory => 0o755,
+            FileType::Symlink => 0o777,
+            _ => 0o644,
+        };
+
         rfuse3::raw::prelude::FileAttr {
             ino,
             size: self.size as _,
@@ -92,7 +98,7 @@ impl PathInfo {
             mtime: naive_to_systemtime(self.modified).into(),
             ctime: naive_to_systemtime(self.creation).into(),
             kind: self.file_type.into(),
-            perm: 0o755,
+            perm,
             // default
             atime: SystemTime::now().into(),
 
@@ -100,13 +106,13 @@ impl PathInfo {
             crtime: SystemTime::now().into(),
 
             nlink: 1,
-            uid: 501,
-            gid: 20,
+            uid: unsafe { libc::getuid() },
+            gid: unsafe { libc::getgid() },
             rdev: 0,
 
             #[cfg(target_os = "macos")]
             flags: 0,
-            blksize: 512,
+            blksize: 4096,
         }
     }
 }

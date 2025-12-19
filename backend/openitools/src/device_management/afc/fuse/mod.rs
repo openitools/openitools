@@ -4,26 +4,31 @@ use rfuse3::{
     raw::{prelude::*, Filesystem},
     Errno, MountOptions, Result as FResult,
 };
-use std::ffi::{c_int, OsStr};
-use std::time::{Duration, SystemTime};
 use std::{collections::HashMap, sync::Arc};
+use std::{
+    ffi::{c_int, OsStr},
+    sync::atomic::AtomicU64,
+};
+use std::{
+    sync::atomic::Ordering,
+    time::{Duration, SystemTime},
+};
 use tokio::io::{AsyncReadExt, AsyncSeekExt};
 use tokio::sync::{Mutex, RwLock};
 
 use crate::device_management::afc::FuseCommand;
 
 const TTL: Duration = Duration::from_secs(1); // 1 second
+type FH = u64;
+type FD = u64;
 
-#[derive(Clone, Debug)]
-pub struct File {
-    path: String,
-    fd: Arc<RwLock<Option<u64>>>,
-}
 pub struct AfcFS {
-    inode_map: RwLock<HashMap<u64, File>>,
+    inode_map: RwLock<HashMap<u64, String>>,
     reverse_map: RwLock<HashMap<String, u64>>,
 
     afc: Mutex<AfcClient>,
+    open_fds: Mutex<HashMap<FH, FD>>,
+    next_fh: AtomicU64,
 
     shutdown_tx: tokio::sync::watch::Sender<()>,
 }
@@ -40,13 +45,7 @@ impl AfcFS {
         // give each file its own stable inode
         for (i, path) in files_path.into_iter().enumerate() {
             let ino = (i + 2) as u64; // start at inode 2
-            inode_map.insert(
-                ino,
-                File {
-                    path: path.clone(),
-                    fd: RwLock::new(None).into(),
-                },
-            );
+            inode_map.insert(ino, path.clone());
             reverse_map.insert(path, ino);
         }
 
@@ -54,6 +53,8 @@ impl AfcFS {
             inode_map: RwLock::new(inode_map),
             reverse_map: RwLock::new(reverse_map),
             afc: Mutex::new(afc),
+            open_fds: Mutex::default(),
+            next_fh: AtomicU64::new(1),
             shutdown_tx,
         }
     }
@@ -103,12 +104,27 @@ impl Filesystem for AfcFS {
     ) -> FResult<()> {
         println!("released: {req:#?}\n\n inode: {inode}\n\n flush: {flush}\n\n lock_owner: {lock_owner}\n\n flags: {flags}");
 
-        let file = self.inode_map.write().await.remove(&inode).unwrap();
-        self.reverse_map.write().await.remove(&file.path);
-
-        if self.inode_map.read().await.len() == 0 {
-            self.shutdown_tx.send(());
+        let afc_fd = match self.open_fds.lock().await.remove(&fh) {
+            Some(fd) => fd,
+            None => return Ok(()),
         };
+
+        let mut afc = self.afc.lock().await;
+
+        // file path is not needed to close
+        unsafe {
+            FileDescriptor::new(&mut afc, afc_fd, "".into())
+                .close()
+                .await
+                .map_err(|_| libc::ENOENT)?;
+        }
+
+        // let file = self.inode_map.write().await.remove(&inode).unwrap();
+        // self.reverse_map.write().await.remove(&file);
+        //
+        // if self.inode_map.read().await.len() == 0 {
+        //     self.shutdown_tx.send(());
+        // };
 
         Ok(())
     }
@@ -139,13 +155,12 @@ impl Filesystem for AfcFS {
 
         if let Some(&ino) = self.reverse_map.read().await.get(name_str) {
             let inode_map = self.inode_map.read().await;
-            let file = inode_map
+            let path = inode_map
                 .get(&ino)
                 .ok_or_else(|| Into::<Errno>::into(libc::ENOENT))?;
 
-            println!("getting file info for {file:#?}");
+            println!("getting file info for {path:#?}");
 
-            let path = &file.path;
             let file_info: PathInfo = self
                 .afc
                 .lock()
@@ -183,8 +198,7 @@ impl Filesystem for AfcFS {
             return Ok(ReplyAttr { ttl: TTL, attr });
         }
 
-        if let Some(file) = self.inode_map.read().await.get(&inode) {
-            let File { path, .. } = &*file;
+        if let Some(path) = self.inode_map.read().await.get(&inode) {
             println!("getting attribute of {path}");
             let file_info: PathInfo = self
                 .afc
@@ -212,42 +226,26 @@ impl Filesystem for AfcFS {
         &self,
         _req: Request,
         inode: u64,
-        _fh: u64,
+        fh: u64,
         offset: u64,
         size: u32,
     ) -> FResult<ReplyData> {
-        let file = match self.inode_map.read().await.get(&inode).cloned() {
-            Some(p) => p,
-            None => return Err(libc::ENOENT.into()),
-        };
+        let file_fd = *self.open_fds.lock().await.get(&fh).ok_or(libc::EBADF)?;
 
-        let mut afc_lock = self.afc.lock().await;
-        println!("reading inode: {inode} path={}", &file.path);
+        let path = self
+            .inode_map
+            .read()
+            .await
+            .get(&inode)
+            .cloned()
+            .ok_or(libc::ENOENT)?;
+
+        let mut afc = self.afc.lock().await;
+        println!("reading inode: {inode} path={path}");
 
         // TODO: buffered?
-        let mut remote_file = tokio::io::BufReader::new(match file {
-            File { path, fd } if fd.read().await.is_some() => unsafe {
-                let fd = fd.read().await.unwrap_unchecked();
-                println!("opening a file from fd: {fd}");
-                FileDescriptor::new(&mut afc_lock, fd, path)
-            },
-            File { path, fd } => {
-                println!("opening a new file");
-                let remote_file = afc_lock
-                    .open(path, AfcFopenMode::RdOnly)
-                    .await
-                    .map_err(|e| {
-                        eprintln!("afc open failed: {e}");
-                        libc::EIO
-                    })?;
+        let mut remote_file = unsafe { FileDescriptor::new(&mut afc, file_fd, path) };
 
-                println!("created a file: {remote_file:#?}");
-
-                *fd.write().await = Some(remote_file.as_raw_fd());
-
-                remote_file
-            }
-        });
         let mut buf = vec![0u8; size as usize];
 
         if let Err(e) = remote_file.seek(std::io::SeekFrom::Start(offset)).await {
@@ -400,16 +398,21 @@ impl Filesystem for AfcFS {
     }
 
     async fn statfs(&self, _req: Request, _inode: u64) -> FResult<ReplyStatFs> {
-        println!("statfs");
+        let device_info = self.afc.lock().await.get_device_info().await.unwrap();
+
+        let totalspace = device_info.total_bytes;
+        let blocksize = device_info.block_size;
+        let freespace = device_info.free_bytes;
+
         Ok(ReplyStatFs {
-            blocks: 1000,
-            bfree: 800,
-            bavail: 800,
-            files: 100,
-            ffree: 50,
-            bsize: 4096,
+            blocks: (totalspace / blocksize) as _,
+            bfree: (freespace / blocksize) as _,
+            bavail: (freespace / blocksize) as _,
+            files: 1_000_000_000,
+            ffree: 1_000_000_000,
+            bsize: blocksize as _,
             namelen: 255,
-            frsize: 4096,
+            frsize: blocksize as _,
         })
     }
     async fn forget(&self, req: Request, inode: rfuse3::Inode, nlookup: u64) -> () {
@@ -455,9 +458,32 @@ impl Filesystem for AfcFS {
         Ok(ReplyXAttr::Data(Vec::new().into()))
     }
 
-    async fn open(&self, _req: Request, inode: u64, _flags: u32) -> FResult<ReplyOpen> {
-        println!("open inode={}", inode);
-        Ok(ReplyOpen { fh: 2, flags: 0 })
+    async fn open(&self, _req: Request, inode: u64, flags: u32) -> FResult<ReplyOpen> {
+        println!("open inode={inode}");
+
+        let path = self
+            .inode_map
+            .read()
+            .await
+            .get(&inode)
+            .cloned()
+            .ok_or(libc::ENOENT)?;
+
+        let mode = match (flags as libc::c_int) & libc::O_ACCMODE {
+            libc::O_RDONLY => AfcFopenMode::RdOnly,
+            libc::O_WRONLY => AfcFopenMode::WrOnly,
+            libc::O_RDWR => AfcFopenMode::Rw,
+            _ => return Err(libc::EPERM.into()),
+        };
+
+        let mut afc = self.afc.lock().await;
+        let fd_obj = afc.open(path, mode).await.map_err(|_| libc::EIO)?;
+        let afc_fd = fd_obj.as_raw_fd();
+
+        let fh = self.next_fh.fetch_add(1, Ordering::Relaxed);
+        self.open_fds.lock().await.insert(fh, afc_fd);
+
+        Ok(ReplyOpen { fh, flags: 0 })
     }
 
     async fn opendir(&self, _req: Request, inode: u64, _flags: u32) -> FResult<ReplyOpen> {

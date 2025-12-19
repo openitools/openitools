@@ -8,6 +8,7 @@ tokio = { version = "1.45.1", features = ["full"] }
 plist = { version = "*" }
 serde = { version = "1", features = ["derive"] }
 rfuse3 = "0.0.5"
+libc = "0.2"
 
 [workspace.lints.clippy]
 pedantic = { level = "warn", priority = -1 }

@@ -27,6 +27,12 @@
 
 	let { connected } = getDeviceContext();
 
+	(async () => {
+		await invoke<string[]>('mount_fuse', {
+			filesPath: ['zen-x86_64.AppImage']
+		});
+	})();
+
 	$effect(() => {
 		if ($connected && fsTree === null && !loading) {
 			loading = true;
