@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, path::PathBuf, str::FromStr};
 
 use futures_util::{future::BoxFuture, lock::Mutex, FutureExt};
 use openitools_idevice::afc::{get_afc_client, AfcClient, AfcFopenMode, FSTree, FileType};
@@ -113,7 +113,17 @@ pub async fn mount_fuse(files_path: Vec<String>) -> Vec<String> {
     tokio::spawn(async move {
         let (tx, mut rx) = tokio::sync::watch::channel(());
         let fs = AfcFS::new(files_path1, afc, tx);
-        let mut mount_handle = Session::new(MountOptions::default())
+        let mut mount_options = MountOptions::default();
+        unsafe {
+            mount_options.uid(libc::getuid()).gid(libc::getgid());
+        }
+        mount_options
+            .fs_name("OpeniTools-Fuse")
+            .allow_other(true)
+            .read_only(true)
+            .nonempty(true);
+
+        let mut mount_handle = Session::new(mount_options)
             .mount_with_unprivileged(fs, tempdir1.to_string_lossy().to_string())
             .await
             .unwrap();

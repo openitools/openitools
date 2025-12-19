@@ -11,16 +11,16 @@
 	import { invoke } from '@tauri-apps/api/core';
 	import { getDeviceContext } from '$lib/device-context';
 
-	// getCurrentWebview().onDragDropEvent((event) => {
-	// 	if (event.payload.type === 'drop') {
-	// 		console.log('User dropped', event.payload.paths);
-	// 	} else if (event.payload.type === 'enter') {
-	// 		console.log('entered');
-	// 	} else if (event.payload.type === 'leave') {
-	// 	} else {
-	// 		console.log('File drop cancelled');
-	// 	}
-	// });
+	getCurrentWebview().onDragDropEvent((event) => {
+		if (event.payload.type === 'drop') {
+			console.log('User dropped', event.payload.paths);
+		} else if (event.payload.type === 'enter') {
+			console.log('entered');
+		} else if (event.payload.type === 'leave') {
+		} else {
+			console.log('File drop cancelled');
+		}
+	});
 
 	let fsTree: FSTree | null = $state(null);
 	let loading = $state<boolean>(false);

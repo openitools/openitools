@@ -12,9 +12,6 @@ use tokio::sync::{Mutex, RwLock};
 
 use crate::device_management::afc::FuseCommand;
 
-const ENOENT: c_int = 2;
-const EIO: c_int = 5;
-
 const TTL: Duration = Duration::from_secs(1); // 1 second
 
 #[derive(Clone, Debug)]
@@ -73,8 +70,8 @@ impl AfcFS {
             kind: FileType::Directory,
             perm: 0o755,
             nlink: 2,
-            uid: 0,
-            gid: 0,
+            uid: unsafe { libc::getuid() },
+            gid: unsafe { libc::getgid() },
             rdev: 0,
             blksize: 4096,
 
@@ -121,7 +118,9 @@ impl Filesystem for AfcFS {
     }
 
     async fn lookup(&self, _req: Request, parent: u64, name: &OsStr) -> FResult<ReplyEntry> {
-        let name_str = name.to_str().ok_or_else(|| Into::<Errno>::into(ENOENT))?;
+        let name_str = name
+            .to_str()
+            .ok_or_else(|| Into::<Errno>::into(libc::ENOENT))?;
         println!("lookup parent={} name={name_str}", parent);
 
         // handle '.' and '..'
@@ -135,14 +134,14 @@ impl Filesystem for AfcFS {
         }
 
         if parent != 1 {
-            return Err(ENOENT.into());
+            return Err(libc::ENOENT.into());
         }
 
         if let Some(&ino) = self.reverse_map.read().await.get(name_str) {
             let inode_map = self.inode_map.read().await;
             let file = inode_map
                 .get(&ino)
-                .ok_or_else(|| Into::<Errno>::into(ENOENT))?;
+                .ok_or_else(|| Into::<Errno>::into(libc::ENOENT))?;
 
             println!("getting file info for {file:#?}");
 
@@ -155,7 +154,7 @@ impl Filesystem for AfcFS {
                 .await
                 .map_err(|e| {
                     eprintln!("get_file_info failed: {e}");
-                    EIO
+                    libc::EIO
                 })?
                 .into();
 
@@ -168,7 +167,7 @@ impl Filesystem for AfcFS {
             });
         }
 
-        Err(ENOENT.into())
+        Err(libc::ENOENT.into())
     }
 
     async fn getattr(
@@ -195,7 +194,7 @@ impl Filesystem for AfcFS {
                 .await
                 .map_err(|e| {
                     eprintln!("get_file_info failed: {e}");
-                    EIO
+                    libc::EIO
                 })?
                 .into();
             println!("info: {file_info:#?}");
@@ -206,7 +205,7 @@ impl Filesystem for AfcFS {
             });
         }
 
-        Err(ENOENT.into())
+        Err(libc::ENOENT.into())
     }
 
     async fn read(
@@ -219,7 +218,7 @@ impl Filesystem for AfcFS {
     ) -> FResult<ReplyData> {
         let file = match self.inode_map.read().await.get(&inode).cloned() {
             Some(p) => p,
-            None => return Err(ENOENT.into()),
+            None => return Err(libc::ENOENT.into()),
         };
 
         let mut afc_lock = self.afc.lock().await;
@@ -239,7 +238,7 @@ impl Filesystem for AfcFS {
                     .await
                     .map_err(|e| {
                         eprintln!("afc open failed: {e}");
-                        EIO
+                        libc::EIO
                     })?;
 
                 println!("created a file: {remote_file:#?}");
@@ -259,7 +258,7 @@ impl Filesystem for AfcFS {
             Ok(n) => n,
             Err(e) => {
                 eprintln!("read failed: {e}");
-                return Err(EIO.into());
+                return Err(libc::EIO.into());
             }
         };
 
@@ -276,7 +275,7 @@ impl Filesystem for AfcFS {
     ) -> FResult<ReplyDirectory<impl Stream<Item = FResult<DirectoryEntry>> + Send + 'a>> {
         println!("readdir parent={parent}, offset={offset}");
         if parent != 1 {
-            return Err(ENOENT.into());
+            return Err(libc::ENOENT.into());
         }
 
         // Build stable entries; offsets must be monotonic and stable.
@@ -328,7 +327,7 @@ impl Filesystem for AfcFS {
         println!("readdirplus parent={}, offset={}", parent, offset);
 
         if parent != 1 {
-            return Err(ENOENT.into());
+            return Err(libc::ENOENT.into());
         }
 
         let root_attr = self.root_attr();
@@ -366,7 +365,7 @@ impl Filesystem for AfcFS {
                 .await
                 .map_err(|e| {
                     eprintln!("get_file_info failed for {path_cloned}: {e}");
-                    Into::<Errno>::into(EIO)
+                    Into::<Errno>::into(libc::EIO)
                 })?
                 .into();
 
@@ -413,9 +412,57 @@ impl Filesystem for AfcFS {
             frsize: 4096,
         })
     }
+    async fn forget(&self, req: Request, inode: rfuse3::Inode, nlookup: u64) -> () {
+        println!("forget inode={inode} nlookup={nlookup}");
+    }
+    async fn flush(
+        &self,
+        req: Request,
+        inode: rfuse3::Inode,
+        fh: u64,
+        lock_owner: u64,
+    ) -> FResult<()> {
+        println!("flushing");
+        Ok(())
+    }
+
+    async fn fsync(
+        &self,
+        req: Request,
+        inode: rfuse3::Inode,
+        fh: u64,
+        datasync: bool,
+    ) -> FResult<()> {
+        println!("fsync");
+        Ok(())
+    }
+    async fn getxattr(
+        &self,
+        _req: Request,
+        inode: u64,
+        name: &OsStr,
+        _size: u32,
+    ) -> FResult<ReplyXAttr> {
+        println!(
+            "Getting extended attributes: inode={}, name={:?}",
+            inode, name
+        );
+        Err(libc::ENOTSUP.into())
+    }
+
+    async fn listxattr(&self, _req: Request, inode: u64, _size: u32) -> FResult<ReplyXAttr> {
+        println!("Listing extended attributes: inode={}", inode);
+        Ok(ReplyXAttr::Data(Vec::new().into()))
+    }
 
     async fn open(&self, _req: Request, inode: u64, _flags: u32) -> FResult<ReplyOpen> {
         println!("open inode={}", inode);
         Ok(ReplyOpen { fh: 2, flags: 0 })
+    }
+
+    async fn opendir(&self, _req: Request, inode: u64, _flags: u32) -> FResult<ReplyOpen> {
+        println!("Opening directory: inode={}", inode);
+
+        Ok(ReplyOpen { fh: 1, flags: 0 })
     }
 }
