@@ -119,12 +119,12 @@ impl Filesystem for AfcFS {
                 .map_err(|_| libc::ENOENT)?;
         }
 
-        // let file = self.inode_map.write().await.remove(&inode).unwrap();
-        // self.reverse_map.write().await.remove(&file);
-        //
-        // if self.inode_map.read().await.len() == 0 {
-        //     self.shutdown_tx.send(());
-        // };
+        let file = self.inode_map.write().await.remove(&inode).unwrap();
+        self.reverse_map.write().await.remove(&file);
+
+        if self.inode_map.read().await.is_empty() {
+            self.shutdown_tx.send(());
+        };
 
         Ok(())
     }
@@ -439,24 +439,24 @@ impl Filesystem for AfcFS {
         println!("fsync");
         Ok(())
     }
-    async fn getxattr(
-        &self,
-        _req: Request,
-        inode: u64,
-        name: &OsStr,
-        _size: u32,
-    ) -> FResult<ReplyXAttr> {
-        println!(
-            "Getting extended attributes: inode={}, name={:?}",
-            inode, name
-        );
-        Err(libc::ENOTSUP.into())
-    }
+    // async fn getxattr(
+    //     &self,
+    //     _req: Request,
+    //     inode: u64,
+    //     name: &OsStr,
+    //     _size: u32,
+    // ) -> FResult<ReplyXAttr> {
+    //     println!(
+    //         "Getting extended attributes: inode={}, name={:?}",
+    //         inode, name
+    //     );
+    //     Err(libc::ENOTSUP.into())
+    // }
 
-    async fn listxattr(&self, _req: Request, inode: u64, _size: u32) -> FResult<ReplyXAttr> {
-        println!("Listing extended attributes: inode={}", inode);
-        Ok(ReplyXAttr::Data(Vec::new().into()))
-    }
+    // async fn listxattr(&self, _req: Request, inode: u64, _size: u32) -> FResult<ReplyXAttr> {
+    //     println!("Listing extended attributes: inode={}", inode);
+    //     Ok(ReplyXAttr::Data(Vec::new().into()))
+    // }
 
     async fn open(&self, _req: Request, inode: u64, flags: u32) -> FResult<ReplyOpen> {
         println!("open inode={inode}");
@@ -483,7 +483,7 @@ impl Filesystem for AfcFS {
         let fh = self.next_fh.fetch_add(1, Ordering::Relaxed);
         self.open_fds.lock().await.insert(fh, afc_fd);
 
-        Ok(ReplyOpen { fh, flags: 0 })
+        Ok(ReplyOpen { fh, flags })
     }
 
     async fn opendir(&self, _req: Request, inode: u64, _flags: u32) -> FResult<ReplyOpen> {
